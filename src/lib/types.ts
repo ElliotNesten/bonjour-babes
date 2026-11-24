@@ -1,8 +1,9 @@
 /**
  * Datamodell för Bonjour Babes.
  *
- * Allt ligger i ett JSON-träd med samma semantik som Firebase Realtime Database: på servern i
- * Postgres bakom API:t (se src/lib/backend/protocol.ts och server/rules.ts), i demoläget i localStorage.
+ * Allt ligger i ett JSON-träd med sökvägar som "games/abc/meta" (se src/lib/backend/types.ts för
+ * semantiken): på servern i Postgres bakom API:t (se src/lib/backend/protocol.ts och server/rules.ts),
+ * i demoläget i localStorage.
  *
  *   setup/adminConfigured          true när adminlösenordet är satt (publik flagga)
  *   secret/adminHash               SHA-256 av adminlösenordet (oläsbar för klienter)

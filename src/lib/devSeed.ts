@@ -13,7 +13,7 @@
  *   som admin på #/admin – annars kastar seed() ett fel. opts.adminPassword används inte.
  */
 import { hashPassword } from './admin';
-import { backend } from './backend';
+import { backend, isPermissionDenied } from './backend';
 import { PLAYER_COLORS, PLAYER_EMOJIS } from './game';
 import { AWARD_IDS } from './scoring';
 import type { GameStatus, Player, RoundPhase, Vote } from './types';
@@ -78,7 +78,13 @@ export async function seed(opts: SeedOptions = {}): Promise<{ gameId: string; pi
     const hash = await hashPassword(opts.adminPassword ?? 'santé');
     await backend.update('', { 'secret/adminHash': hash, 'setup/adminConfigured': true, [`adminSessions/${uid}`]: hash });
   } else {
-    const session = await backend.get<string>(`adminSessions/${uid}`).catch(() => null);
+    // Servern godkänner bara skrivningarna nedan från en inloggad admin.
+    let session: string | null = null;
+    try {
+      session = await backend.get<string>(`adminSessions/${uid}`);
+    } catch (err) {
+      if (!isPermissionDenied(err)) throw err;
+    }
     if (typeof session !== 'string' || !session) {
       throw new Error('seed() skriver som admin: logga först in som admin i den här fliken (#/admin) och försök igen.');
     }

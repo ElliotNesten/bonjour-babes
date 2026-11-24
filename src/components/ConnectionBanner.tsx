@@ -1,7 +1,7 @@
 import { isDemoMode } from '../lib/backend';
 import { useConnected } from '../lib/hooks';
 
-/** Visar en banner när anslutningen till databasen tappas, och en liten bricka i demoläget. */
+/** Visar en banner när servern inte går att nå (se onConnection i backenden), och en liten bricka i demoläget. */
 export function ConnectionBanner() {
   const connected = useConnected();
   return (

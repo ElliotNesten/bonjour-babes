@@ -1,6 +1,17 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { PrefixRead, ReadOutcome, ReadSpec, Store, StoredDoc, TransactOptions, TxOutcome, TxPlan, TxReader } from './store.js';
+import type {
+  PrefixRead,
+  ReadDoc,
+  ReadOutcome,
+  ReadSpec,
+  Store,
+  StoredDoc,
+  TransactOptions,
+  TxOutcome,
+  TxPlan,
+  TxReader,
+} from './store.js';
 
 /**
  * Dokumentlager i minnet, valfritt sparat i en JSON-fil. Används för lokal utveckling utan
@@ -65,18 +76,29 @@ export function createFileStore(options: FileStoreOptions = {}): Store {
     kind: 'file',
 
     async read(spec: ReadSpec): Promise<ReadOutcome> {
+      const known = spec.known;
+      const out = new Map<string, ReadDoc>();
+      for (const key of spec.keys ?? []) {
+        const doc = docs.get(key);
+        const rev = doc?.rev ?? 0;
+        if (known?.get(key) === rev) out.set(key, { data: null, rev, unchanged: true });
+        else out.set(key, get(key));
+      }
       const prefixes = new Map<string, PrefixRead>();
       for (const prefix of spec.prefixes ?? []) {
-        const live = new Map<string, unknown>();
         let rev = 0;
+        for (const [key, doc] of docs) if (key.startsWith(prefix)) rev += doc.rev;
+        if (known?.get(prefix) === rev) {
+          prefixes.set(prefix, { docs: new Map(), rev, unchanged: true });
+          continue;
+        }
+        const live = new Map<string, unknown>();
         for (const [key, doc] of docs) {
-          if (!key.startsWith(prefix)) continue;
-          rev = Math.max(rev, doc.rev);
-          if (doc.data !== null) live.set(key.slice(prefix.length), clone(doc.data));
+          if (key.startsWith(prefix) && doc.data !== null) live.set(key.slice(prefix.length), clone(doc.data));
         }
         prefixes.set(prefix, { docs: live, rev });
       }
-      return { docs: readKeys(spec.keys ?? []), prefixes };
+      return { docs: out, prefixes };
     },
 
     transact<T>(

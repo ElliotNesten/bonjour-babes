@@ -61,6 +61,15 @@ function createServer() {
     override: null as Override | null,
     /** Fördröjning (ms, falska timers) innan /api/read svarar. */
     readDelay: 0,
+    /**
+     * true: /api/read läser databasen när förfrågan kommer fram och svaret är sedan fördröjt (svaret kan
+     * alltså vara inaktuellt när det når klienten). false: läser när fördröjningen är över.
+     */
+    readEarly: false,
+    /** true: /api/read svarar 401 på en okänd token (i stället för att läsa som oinloggad). */
+    strictReadAuth: false,
+    /** Fördröjning (ms, falska timers) innan /api/session svarar. */
+    sessionDelay: 0,
     readsInFlight: 0,
     maxReadsInFlight: 0,
 
@@ -131,7 +140,13 @@ function createServer() {
         server.maxReadsInFlight = Math.max(server.maxReadsInFlight, server.readsInFlight);
       }
       try {
+        if (endpoint === 'read' && server.readEarly && !server.override) {
+          const early = handle(endpoint, body, auth);
+          if (server.readDelay) await new Promise((r) => setTimeout(r, server.readDelay));
+          return early;
+        }
         if (endpoint === 'read' && server.readDelay) await new Promise((r) => setTimeout(r, server.readDelay));
+        if (endpoint === 'session' && server.sessionDelay) await new Promise((r) => setTimeout(r, server.sessionDelay));
         const o = server.override?.(endpoint, body);
         if (o === 'network') throw new TypeError('Failed to fetch');
         if (o === 'hang') return await new Promise<FakeResponse>(() => {});
@@ -151,6 +166,9 @@ function createServer() {
       return json(200, { uid, token });
     }
     if (endpoint === 'read') {
+      if (server.strictReadAuth && auth && !sessions.has(auth.replace(/^Bearer /, ''))) {
+        return json(401, { error: 'unauthenticated', message: 'Unknown token' });
+      }
       const results: ReadResult[] = (body as ReadRequest).reads.map(({ path, rev: known }) => {
         if (server.denyRead.has(path)) return { path, error: 'permission_denied' };
         const r = server.revOf(path);
@@ -308,7 +326,10 @@ describe('session', () => {
   it('ger upp efter några försök med ett svenskt felmeddelande, och nästa ready() försöker igen', async () => {
     server.override = (endpoint) => (endpoint === 'session' ? raw(502, '<html><body>Bad gateway</body></html>') : undefined);
     const b = make();
-    const result = b.ready().catch((e: unknown) => e as Error);
+    const result = b.ready().then(
+      () => new Error('ready() lyckades men skulle ha misslyckats'),
+      (e: unknown) => e as Error,
+    );
     await vi.advanceTimersByTimeAsync(10_000);
     const err = await result;
     expect(err).toBeInstanceOf(ApiError);
@@ -318,6 +339,39 @@ describe('session', () => {
 
     server.override = null;
     expect(await b.ready()).toBe('uid1');
+  });
+
+  it('404 (inget API på adressen) försöks inte igen och nämner HTTP-statusen', async () => {
+    server.override = (endpoint) => (endpoint === 'session' ? raw(404, 'Not Found') : undefined);
+    const err = await caught(make().ready());
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.message).toMatch(/HTTP 404/);
+    expect(server.callsTo('session')).toHaveLength(1);
+  });
+
+  it('ett 200-svar utan uid/token godtas inte som session', async () => {
+    server.override = (endpoint) => (endpoint === 'session' ? jsonResponse(200, { uid: 'x' }) : undefined);
+    const b = make();
+    const err = await caught(b.ready());
+    expect(err).toBeInstanceOf(ApiError);
+    expect(b.uid()).toBeNull();
+    expect(storage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('en pollning som startar medan sessionen skapas väntar in den och läser som rätt användare', async () => {
+    server.put('games/g1/meta/status', 'lobby');
+    server.sessionDelay = 300;
+    const b = make();
+    const ready = b.ready();
+    const values: unknown[] = [];
+    b.subscribe('games/g1/meta/status', (v) => values.push(v));
+    await settle();
+    expect(server.calls.map((c) => c.endpoint)).toEqual(['session']);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(await ready).toBe('uid1');
+    expect(server.calls.map((c) => c.endpoint)).toEqual(['session', 'read']);
+    expect(server.callsTo('read')[0].auth).toBe('Bearer token-uid1');
+    expect(values).toEqual(['lobby']);
   });
 
   it('503 no_database: avvisar direkt med serverns meddelande', async () => {
@@ -631,6 +685,7 @@ describe('skrivningar', () => {
 
   it('väntar in en pågående pollning och kör en ny innan skrivningen räknas som klar', async () => {
     server.readDelay = 300;
+    server.readEarly = true; // den pågående pollningen läste databasen före skrivningen
     const b = make();
     await b.ready();
     const values: unknown[] = [];
@@ -640,8 +695,11 @@ describe('skrivningar', () => {
     const p = b.set('games/g1/meta/status', 'running').then(() => (done = true));
     await settle();
     expect(server.callsTo('write')).toHaveLength(1);
+    expect(server.callsTo('read')).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(300); // den gamla pollningen (från före skrivningen) blir klar
+    expect(values).toEqual(['lobby']);
     expect(done).toBe(false);
+    expect(server.calls.map((c) => c.endpoint)).toEqual(['session', 'read', 'write', 'read']); // ny pollning direkt
     await vi.advanceTimersByTimeAsync(300); // den nya pollningen
     await p;
     expect(values).toEqual(['lobby', 'running']);
@@ -683,6 +741,50 @@ describe('skrivningar', () => {
     expect(server.callsTo('session')).toHaveLength(0);
     expect(b.uid()).toBe('gammal');
     expect(storage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('401 vid läsning: läser vidare som oinloggad, samma uid, och skrivningar ber om omladdning', async () => {
+    server.strictReadAuth = true;
+    storage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ uid: 'gammal', token: 'okänd' }));
+    const b = make();
+    await b.ready();
+    const values: unknown[] = [];
+    b.subscribe('games/g1/meta/status', (v) => values.push(v));
+    await settle();
+    expect(server.callsTo('read')[0].auth).toBe('Bearer okänd');
+    expect(values).toEqual([]);
+    expect(storage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(server.callsTo('read')[1].auth).toBeNull();
+    expect(values).toEqual(['lobby']);
+    expect(b.uid()).toBe('gammal');
+    const err = await caught(b.set('games/g1/players/gammal/name', 'Alva'));
+    expect(err.message).toMatch(/ladda om sidan/);
+    expect(server.callsTo('session')).toHaveLength(0);
+  });
+
+  it('403 utan känd felkod räknas ändå som PermissionDeniedError', async () => {
+    const b = make();
+    await b.ready();
+    server.override = (endpoint) => (endpoint === 'write' ? jsonResponse(403, { error: 'forbidden' }) : undefined);
+    expect(await caught(b.set('a/b', 1))).toBeInstanceOf(PermissionDeniedError);
+    server.override = (endpoint) => (endpoint === 'write' ? raw(403, 'Forbidden') : undefined);
+    expect(await caught(b.set('a/b', 1))).toBeInstanceOf(PermissionDeniedError);
+  });
+
+  it('skrivningen räknas som klar även om pollningen efteråt misslyckas', async () => {
+    const b = make();
+    const values: unknown[] = [];
+    b.subscribe('games/g1/meta/status', (v) => values.push(v));
+    await settle();
+    server.override = (endpoint) => (endpoint === 'read' ? 'network' : undefined);
+    await drive(b.set('games/g1/meta/status', 'running'));
+    expect(server.calls.map((c) => c.endpoint)).toEqual(['read', 'session', 'write', 'read']);
+    expect(values).toEqual(['lobby']);
+    server.override = null;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(values).toEqual(['lobby', 'running']);
   });
 
   it('429, nätverksfel, serverfel och HTML-felsidor ger begripliga fel', async () => {
@@ -756,6 +858,14 @@ describe('anslutning', () => {
     await caught(b.set('x', 1));
     await settle();
     expect(states).toEqual([true]);
+    // Även Vercels egen 429-spärr (utan JSON) är ett svar.
+    server.override = (endpoint) => (endpoint === 'write' ? raw(429, 'Too Many Requests') : undefined);
+    await caught(b.set('x', 1));
+    expect(states).toEqual([true]);
+    // … men ett 5xx-svar är det inte.
+    server.override = (endpoint) => (endpoint === 'write' ? jsonResponse(500, { error: 'server_error' }) : undefined);
+    await caught(b.set('x', 1));
+    expect(states).toEqual([true, false]);
   });
 });
 
@@ -776,6 +886,22 @@ describe('servertid', () => {
     expect(b.now() - Date.now()).toBe(5000);
     await vi.advanceTimersByTimeAsync(3000);
     expect(b.now() - Date.now()).toBe(5000);
+  });
+
+  it('jämnar ut mätningar med ungefär samma svarstid', async () => {
+    server.clockOffset = 5000;
+    server.readDelay = 20;
+    const b = make();
+    b.subscribe('games', () => {});
+    await settle();
+    await vi.advanceTimersByTimeAsync(20); // svarstid 20 ms → 5000 + 10
+    expect(b.now() - Date.now()).toBe(5010);
+    server.readDelay = 0;
+    await vi.advanceTimersByTimeAsync(1000); // svarstid 0 → 5000; båda räknas
+    expect(b.now() - Date.now()).toBe(5005);
+    server.readDelay = 500;
+    await vi.advanceTimersByTimeAsync(1000 + 500); // långsamt svar → räknas inte
+    expect(b.now() - Date.now()).toBe(5005);
   });
 
   it('följer med när klockan hoppar', async () => {

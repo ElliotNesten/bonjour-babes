@@ -187,6 +187,16 @@ function safeRemove(storage: Storage | undefined, key: string) {
   }
 }
 
+const KNOWN_ERRORS = new Set<ApiErrorCode>([
+  'bad_request',
+  'unauthenticated',
+  'permission_denied',
+  'too_large',
+  'rate_limited',
+  'no_database',
+  'server_error',
+]);
+
 function codeFromStatus(status: number): ApiFailure {
   if (status === 400) return 'bad_request';
   if (status === 401) return 'unauthenticated';
@@ -352,8 +362,10 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     }
 
     let code: ApiFailure;
-    if (obj) code = typeof obj.error === 'string' ? (obj.error as ApiFailure) : codeFromStatus(status);
+    if (obj) code = KNOWN_ERRORS.has(obj.error as ApiErrorCode) ? (obj.error as ApiErrorCode) : codeFromStatus(status);
     else code = status === 429 ? 'rate_limited' : 'bad_response'; // t.ex. en HTML-felsida från Vercel
+    if (status === 403) code = 'permission_denied';
+    else if (status === 401) code = 'unauthenticated';
     // 429 kan komma från Vercels egen spärr (utan JSON) – servern svarade ändå.
     setConnected(status === 429 || (!!obj && status < 500));
 
@@ -492,7 +504,9 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
 
   /**
    * Pollar direkt (i nästa mikrouppgift, utan att vänta på en timer) – eller, om en pollning pågår,
-   * direkt efter den. Används när någon väntar på svaret: skrivningar (refresh) och get().
+   * direkt efter den. Används när någon väntar: en skrivning (refresh) och en pollning som begärdes
+   * medan en annan pågick. (Nya prenumerationer går via schedule(0), så att alla som skapas i samma
+   * vända delar ett anrop.)
    */
   function pollSoon() {
     if (polling) {

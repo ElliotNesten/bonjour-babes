@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
 
-// Enhetstester (npm test): ren logik i node, ingen webbläsare och ingen databas.
-// Reglertesterna mot Firebase-emulatorn har en egen konfiguration (vitest.rules.config.ts).
+// npm test: ren logik (tests/unit) och servern (tests/server) i node – ingen webbläsare.
+// Servertesterna körs mot lagret i minnet, och dessutom mot Postgres om TEST_DATABASE_URL är satt
+// (npm run test:pg kräver den).
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/server/**/*.test.ts'],
   },
 });

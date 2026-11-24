@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": [
+    "server",
+    "api",
+    "vite.config.ts",
+    "src/lib/backend/protocol.ts",
+    "src/lib/backend/tree.ts",
+    "src/lib/backend/types.ts"
+  ]
+}

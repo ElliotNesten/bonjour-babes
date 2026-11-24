@@ -45,13 +45,13 @@ export function normalize(value: unknown, now: number): unknown {
   return value;
 }
 
-/** Värdet på en sökväg i trädet, eller null. */
+/** Värdet på en sökväg i trädet, eller null. Följer bara egna nycklar (aldrig t.ex. "constructor" från prototypen). */
 export function getAt(tree: unknown, path: string | readonly string[]): unknown {
   let node: unknown = tree;
   for (const seg of typeof path === 'string' ? splitPath(path) : path) {
     if (node === null || node === undefined) return null;
-    if (Array.isArray(node)) node = node[Number(seg)];
-    else if (isPlainObject(node)) node = node[seg];
+    if (Array.isArray(node)) node = /^(0|[1-9][0-9]*)$/.test(seg) ? node[Number(seg)] : undefined;
+    else if (isPlainObject(node)) node = Object.prototype.hasOwnProperty.call(node, seg) ? node[seg] : undefined;
     else return null;
   }
   return node ?? null;
@@ -68,7 +68,7 @@ export function setAt(tree: Tree, path: string | readonly string[], value: unkno
   let node: Record<string, unknown> = root;
   for (let i = 0; i < segs.length - 1; i++) {
     const seg = segs[i];
-    const next = node[seg];
+    const next = Object.prototype.hasOwnProperty.call(node, seg) ? node[seg] : undefined;
     let copy: Record<string, unknown>;
     if (Array.isArray(next)) copy = Object.fromEntries(next.map((v, idx) => [String(idx), v]));
     else if (isPlainObject(next)) copy = { ...next };
