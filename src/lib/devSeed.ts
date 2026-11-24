@@ -169,7 +169,10 @@ export async function seed(opts: SeedOptions = {}): Promise<{ gameId: string; pi
   }
   if (status === 'ceremony') game.ceremony = { step: opts.step ?? 0, at: backend.now() };
 
-  await backend.update('', { [`games/${gameId}`]: game, [`pins/${pin}`]: gameId });
+  // Specialprisrösterna skrivs efter spelarna: reglerna kräver att röstens mål redan finns i databasen.
+  const { awardVotes: seededAwardVotes, ...rest } = game as typeof game & { awardVotes?: unknown };
+  await backend.update('', { [`games/${gameId}`]: rest, [`pins/${pin}`]: gameId });
+  if (seededAwardVotes) await backend.set(`games/${gameId}/awardVotes`, seededAwardVotes);
   if (status === 'finished') {
     const { finishGame } = await import('./game');
     await finishGame(gameId);
