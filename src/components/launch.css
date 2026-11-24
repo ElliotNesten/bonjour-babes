@@ -1,0 +1,411 @@
+/* =====================================================================
+   Nedräkningen före öppning (LaunchGate) – täcker hela sidan.
+   ===================================================================== */
+
+.launch {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 70% at 50% 108%, rgba(110, 20, 48, 0.55), transparent 62%),
+    radial-gradient(90% 60% at 50% -10%, rgba(217, 178, 111, 0.12), transparent 60%),
+    var(--ink);
+  color: var(--text);
+  padding: calc(28px + var(--safe-top)) 18px calc(28px + var(--safe-bottom));
+}
+
+.launch--reveal {
+  animation: launch-lift 2.6s var(--ease-out) forwards;
+}
+
+@keyframes launch-lift {
+  0%,
+  45% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+    filter: blur(6px);
+    visibility: hidden;
+  }
+}
+
+/* Strålkastare uppifrån */
+.launch__spot {
+  position: absolute;
+  left: 50%;
+  top: -10%;
+  width: min(900px, 140vw);
+  height: 85%;
+  transform: translateX(-50%);
+  background: conic-gradient(from 180deg at 50% 0%, transparent 155deg, rgba(246, 234, 208, 0.08) 172deg, rgba(246, 234, 208, 0.14) 180deg, rgba(246, 234, 208, 0.08) 188deg, transparent 205deg);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: launch-breathe 7s ease-in-out infinite;
+}
+
+@keyframes launch-breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Art deco-ram */
+.launch__frame {
+  position: absolute;
+  inset: calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom));
+  border: 1px solid var(--line);
+  outline: 1px solid rgba(217, 178, 111, 0.12);
+  outline-offset: 5px;
+  pointer-events: none;
+}
+
+.launch__corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-color: var(--gold);
+  border-style: solid;
+  opacity: 0.8;
+}
+
+.launch__corner::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: var(--gold);
+  transform: rotate(45deg);
+}
+
+.launch__corner--tl {
+  top: -4px;
+  left: -4px;
+  border-width: 2px 0 0 2px;
+}
+.launch__corner--tl::after {
+  top: 6px;
+  left: 6px;
+}
+.launch__corner--tr {
+  top: -4px;
+  right: -4px;
+  border-width: 2px 2px 0 0;
+}
+.launch__corner--tr::after {
+  top: 6px;
+  right: 6px;
+}
+.launch__corner--bl {
+  bottom: -4px;
+  left: -4px;
+  border-width: 0 0 2px 2px;
+}
+.launch__corner--bl::after {
+  bottom: 6px;
+  left: 6px;
+}
+.launch__corner--br {
+  bottom: -4px;
+  right: -4px;
+  border-width: 0 2px 2px 0;
+}
+.launch__corner--br::after {
+  bottom: 6px;
+  right: 6px;
+}
+
+.launch__sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.launch__sparkle {
+  position: absolute;
+  opacity: 0;
+  animation: launch-twinkle 4.2s ease-in-out infinite;
+}
+
+@keyframes launch-twinkle {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  82% {
+    opacity: 0.95;
+    transform: scale(1) rotate(45deg);
+  }
+}
+
+/* Innehåll */
+.launch__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(10px, 2.2vh, 22px);
+  max-width: 760px;
+  width: 100%;
+  animation: bb-fade-up 1.2s var(--ease-out) both;
+}
+
+.launch__kicker {
+  margin: 0;
+  font-family: var(--font-deco);
+  font-size: clamp(0.7rem, 1.6vh, 0.95rem);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-left: 0.42em; /* balanserar letter-spacing så att texten hamnar mitt i */
+}
+
+.launch__logo.logo--xl .logo__bonjour {
+  font-size: clamp(4.2rem, 17vw, 8.5rem);
+}
+
+.launch__logo.logo--xl .logo__babes {
+  font-size: clamp(1.15rem, 4.6vw, 2.2rem);
+}
+
+.launch__ornament {
+  width: 100%;
+  color: var(--gold);
+}
+
+/* Drinkarna */
+.launch__drinks {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(10px, 4vw, 34px);
+  margin: clamp(2px, 1vh, 10px) 0;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 18px rgba(217, 178, 111, 0.12));
+}
+
+.launch__glass {
+  height: clamp(92px, 17vh, 170px);
+  width: auto;
+  transform-origin: 50% 92%;
+  animation: launch-sway 6s ease-in-out infinite;
+}
+
+.launch__glass--coupe {
+  height: clamp(110px, 21vh, 205px);
+  animation-delay: -2s;
+}
+
+.launch__glass--flute {
+  animation-delay: -4s;
+}
+
+@keyframes launch-sway {
+  0%,
+  100% {
+    transform: rotate(-2.5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2.5deg) translateY(-4px);
+  }
+}
+
+.launch__bubble {
+  animation: launch-bubble 3.2s linear infinite;
+}
+.launch__bubble--b {
+  animation-delay: -0.9s;
+  animation-duration: 2.6s;
+}
+.launch__bubble--c {
+  animation-delay: -1.8s;
+  animation-duration: 3.6s;
+}
+.launch__bubble--d {
+  animation-delay: -2.4s;
+  animation-duration: 2.9s;
+}
+
+@keyframes launch-bubble {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-58px);
+    opacity: 0;
+  }
+}
+
+/* Text och nedräkning */
+.launch__lead {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.15rem, 3.2vh, 1.8rem);
+  color: var(--champagne);
+}
+
+.launch__countdown {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+}
+
+.launch__unit-wrap {
+  display: flex;
+  align-items: flex-start;
+}
+
+.launch__unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: clamp(58px, 17vw, 112px);
+}
+
+.launch__num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.3rem, 10vw, 4.6rem);
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+  background: var(--gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.launch__label {
+  margin-top: 6px;
+  font-family: var(--font-deco);
+  font-size: clamp(0.58rem, 1.4vh, 0.78rem);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-left: 0.28em;
+}
+
+.launch__sep {
+  align-self: flex-start;
+  margin-top: clamp(0.8rem, 3.4vw, 1.6rem);
+  font-size: clamp(0.5rem, 1.6vw, 0.75rem);
+  color: var(--gold-deep);
+}
+
+.launch__date {
+  margin: 0;
+  font-family: var(--font-deco);
+  font-size: clamp(0.66rem, 1.5vh, 0.85rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.launch__open {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(2.2rem, 8vw, 4rem);
+  background: var(--gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: bb-pop 0.8s var(--ease-spring) both;
+}
+
+.launch__script {
+  margin: clamp(2px, 1vh, 10px) 0 0;
+  font-family: var(--font-script);
+  font-size: clamp(1.7rem, 4.6vh, 2.6rem);
+  color: var(--gold-light);
+  opacity: 0.9;
+}
+
+/* Smala skärmar: datumet på två rader i stället för en avbruten rad */
+@media (max-width: 600px) {
+  .launch__date span {
+    display: block;
+  }
+  .launch__date .launch__date-dot {
+    display: none;
+  }
+}
+
+/* Storskärm/TV: större text och drinkar så att det syns över rummet */
+@media (min-width: 1200px) and (min-height: 760px) {
+  .launch__inner {
+    max-width: 1100px;
+  }
+  .launch__kicker {
+    font-size: 1.25rem;
+  }
+  .launch__logo.logo--xl .logo__bonjour {
+    font-size: 11rem;
+  }
+  .launch__logo.logo--xl .logo__babes {
+    font-size: 2.8rem;
+  }
+  .launch__glass {
+    height: 210px;
+  }
+  .launch__glass--coupe {
+    height: 250px;
+  }
+  .launch__lead {
+    font-size: 2.6rem;
+  }
+  .launch__num {
+    font-size: 6.4rem;
+  }
+  .launch__unit {
+    min-width: 150px;
+  }
+  .launch__label {
+    font-size: 0.95rem;
+  }
+  .launch__sep {
+    margin-top: 2.2rem;
+    font-size: 0.95rem;
+  }
+  .launch__date {
+    font-size: 1.05rem;
+  }
+  .launch__script {
+    font-size: 3.4rem;
+  }
+}
+
+/* Låga skärmar (t.ex. liggande mobil): krymp drinkarna och luften */
+@media (max-height: 560px) {
+  .launch__glass {
+    height: 70px;
+  }
+  .launch__glass--coupe {
+    height: 84px;
+  }
+  .launch__inner {
+    gap: 6px;
+  }
+  .launch__logo.logo--xl .logo__bonjour {
+    font-size: 3.4rem;
+  }
+}

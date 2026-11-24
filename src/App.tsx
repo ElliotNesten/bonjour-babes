@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Backdrop } from './components/Backdrop';
 import { ConnectionBanner } from './components/ConnectionBanner';
+import { LaunchGate } from './components/LaunchGate';
 import { Loading } from './components/Loading';
 import { Logo } from './components/Logo';
 import { backend, isNoDatabaseError } from './lib/backend';
@@ -80,9 +81,11 @@ function Router() {
 
 export function App() {
   return (
-    <BackendGate>
-      <ConnectionBanner />
-      <Router />
-    </BackendGate>
+    <LaunchGate>
+      <BackendGate>
+        <ConnectionBanner />
+        <Router />
+      </BackendGate>
+    </LaunchGate>
   );
 }
