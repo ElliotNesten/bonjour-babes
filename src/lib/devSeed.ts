@@ -2,13 +2,15 @@
  * Utvecklingshjälp: skapar ett demospel med påhittade deltagare och röster så att
  * alla skärmar kan förhandsgranskas utan att spela igenom ett helt spel.
  *
- * Bara tillgängligt i utvecklingsläge (npm run dev / dev:local / dev:emu).
+ * Bara tillgängligt i utvecklingsläge (npm run dev / npm run dev:local).
  * I webbläsarkonsolen:
  *
  *   await __bb.seed({ status: 'ceremony', step: 3, players: 9 })
- *   → { gameId, pin }  (och den här fliken blir admin + spelare)
+ *   → { gameId, pin }  (och den här fliken blir spelare i spelet)
  *
- * Fungerar fullt ut i demoläget (local). Mot emulatorn krävs att fliken redan är admin.
+ * - Demoläget (dev:local): seed() gör dessutom fliken till admin (lösenord: opts.adminPassword, default "santé").
+ * - Mot servern (npm run dev): servern kontrollerar alla skrivningar, så fliken måste FÖRST vara inloggad
+ *   som admin på #/admin – annars kastar seed() ett fel. opts.adminPassword används inte.
  */
 import { hashPassword } from './admin';
 import { backend } from './backend';
@@ -71,14 +73,20 @@ export async function seed(opts: SeedOptions = {}): Promise<{ gameId: string; pi
   const rand = rnd(n * 7919 + status.length);
 
   // Admin
-  const hash = await hashPassword(opts.adminPassword ?? 'santé');
   if (backend.kind === 'local') {
+    // Demoläget har inga säkerhetsregler: skriv lösenordet och adminsessionen direkt.
+    const hash = await hashPassword(opts.adminPassword ?? 'santé');
     await backend.update('', { 'secret/adminHash': hash, 'setup/adminConfigured': true, [`adminSessions/${uid}`]: hash });
+  } else {
+    const session = await backend.get<string>(`adminSessions/${uid}`).catch(() => null);
+    if (typeof session !== 'string' || !session) {
+      throw new Error('seed() skriver som admin: logga först in som admin i den här fliken (#/admin) och försök igen.');
+    }
   }
 
   const gameId = backend.pushKey();
   const pin = String(100000 + Math.floor(((rand() + Math.random()) % 1) * 900000));
-  const base = Date.now() - 3 * 3600_000;
+  const base = backend.now() - 3 * 3600_000;
   const ids = Array.from({ length: n }, (_, i) => (i === 0 && meAsPlayer ? uid : `seed${i}-${gameId.slice(-4)}`));
   const players: Record<string, Player> = {};
   ids.forEach((id, i) => {
@@ -140,7 +148,7 @@ export async function seed(opts: SeedOptions = {}): Promise<{ gameId: string; pi
       createdAt: base,
       status,
       ...(status !== 'lobby' ? { startedAt: base + 1800_000 } : {}),
-      ...(status === 'finished' ? { finishedAt: Date.now() } : {}),
+      ...(status === 'finished' ? { finishedAt: backend.now() } : {}),
     },
     settings: { trimExtremes: true, showJudgeNames: false, awardsEnabled: true },
     players,
@@ -149,11 +157,11 @@ export async function seed(opts: SeedOptions = {}): Promise<{ gameId: string; pi
     awardVotes,
   };
   if (status === 'running') {
-    game.current = { index: currentIndex, drinkId: order[currentIndex], phase: opts.phase ?? 'voting', since: Date.now() };
+    game.current = { index: currentIndex, drinkId: order[currentIndex], phase: opts.phase ?? 'voting', since: backend.now() };
   } else if (status !== 'lobby') {
-    game.current = { index: order.length - 1, drinkId: order[order.length - 1], phase: 'closed', since: Date.now() };
+    game.current = { index: order.length - 1, drinkId: order[order.length - 1], phase: 'closed', since: backend.now() };
   }
-  if (status === 'ceremony') game.ceremony = { step: opts.step ?? 0, at: Date.now() };
+  if (status === 'ceremony') game.ceremony = { step: opts.step ?? 0, at: backend.now() };
 
   await backend.update('', { [`games/${gameId}`]: game, [`pins/${pin}`]: gameId });
   if (status === 'finished') {

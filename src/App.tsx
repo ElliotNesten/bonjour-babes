@@ -3,7 +3,7 @@ import { Backdrop } from './components/Backdrop';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { Loading } from './components/Loading';
 import { Logo } from './components/Logo';
-import { backend } from './lib/backend';
+import { backend, isNoDatabaseError } from './lib/backend';
 import { useRoute } from './lib/router';
 import { AdminView } from './views/admin/AdminView';
 import { HomeView } from './views/HomeView';
@@ -13,7 +13,7 @@ import { HallOfFameView } from './views/results/HallOfFameView';
 import { ResultsView } from './views/results/ResultsView';
 import { TvView } from './views/tv/TvView';
 
-/** Väntar på (anonym) inloggning innan något renderas. */
+/** Väntar på en (anonym) session från servern innan något renderas. */
 function BackendGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<'loading' | 'ready' | Error>(backend.uid() ? 'ready' : 'loading');
   const [attempt, setAttempt] = useState(0);
@@ -30,8 +30,6 @@ function BackendGate({ children }: { children: ReactNode }) {
 
   if (state === 'loading') return <Loading full text="Bonsoir…" />;
   if (state instanceof Error) {
-    const msg = state.message;
-    const anonDisabled = /admin-restricted-operation|operation-not-allowed/i.test(msg);
     return (
       <>
         <Backdrop bubbles={8} />
@@ -39,17 +37,13 @@ function BackendGate({ children }: { children: ReactNode }) {
           <Logo size="md" />
           <div className="card card--deco stack">
             <h3>Kunde inte ansluta</h3>
-            {anonDisabled ? (
-              <p className="muted">
-                Anonym inloggning är inte aktiverad i Firebase. Gå till <strong>Firebase Console → Authentication →
-                Sign-in method</strong> och aktivera <code>Anonymous</code>.
+            <p className="muted">{state.message || 'Något gick fel – försök igen.'}</p>
+            {isNoDatabaseError(state) && (
+              <p className="hint">
+                Skapa en Postgres-databas (Neon) under <strong>Storage</strong> i ditt Vercel-projekt och gör en ny
+                deploy.
               </p>
-            ) : (
-              <p className="muted">Kontrollera din internetanslutning och försök igen.</p>
             )}
-            <p className="hint">
-              <code>{msg}</code>
-            </p>
             <button className="btn btn--gold" onClick={() => {
               setState('loading');
               setAttempt((a) => a + 1);

@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import { backend, isPermissionDenied } from './backend';
+import { DOCS_TABLE } from './backend/protocol';
 
 /**
  * Adminlösenord utan e-postkonto:
  *  - Första gången väljer admin ett lösenord. Dess SHA-256 sparas i secret/adminHash,
- *    som ingen klient kan läsa (se database.rules.json).
- *  - Inloggning = skriva hashen till adminSessions/{uid}. Reglerna godkänner bara
- *    skrivningen om hashen matchar, och alla admin-skrivningar kräver en giltig session.
- *  - Byta/återställa lösenordet: radera noden "secret" (och "setup") i Firebase Console.
+ *    som servern aldrig lämnar ut (se server/rules.ts).
+ *  - Inloggning = skriva hashen till adminSessions/{uid}. Servern godkänner bara skrivningen om
+ *    hashen matchar (och begränsar antalet försök), och alla admin-skrivningar kräver en giltig session.
+ *  - Byta/återställa lösenordet: i Vercel → Storage → din Neon-databas → "Open in Neon" (SQL Editor), kör
+ *      DELETE FROM bb_docs WHERE key IN ('secret','setup');
+ *    och välj sedan ett nytt lösenord på #/admin.
  */
+
+/** SQL som raderar adminlösenordet (visas i inloggningsformuläret). */
+export const RESET_PASSWORD_SQL = `DELETE FROM ${DOCS_TABLE} WHERE key IN ('secret','setup');`;
 
 const SALT = 'bonjour-babes:v1:';
 
@@ -101,7 +107,10 @@ export async function setupAdminPassword(password: string): Promise<void> {
   if (!ok) throw new Error('Lösenordet sparades men inloggningen misslyckades – försök logga in.');
 }
 
-/** Logga in som admin. Returnerar false vid fel lösenord. */
+/**
+ * Logga in som admin. Returnerar false vid fel lösenord.
+ * Andra fel kastas vidare – t.ex. "För många försök …" när servern begränsar felaktiga inloggningar.
+ */
 export async function adminLogin(password: string): Promise<boolean> {
   const uid = backend.uid() ?? (await backend.ready());
   const hash = await hashPassword(password);
@@ -111,6 +120,7 @@ export async function adminLogin(password: string): Promise<boolean> {
     if (stored !== hash) return false;
   }
   try {
+    // Servern nekar skrivningen (403) om hashen inte stämmer.
     await backend.set(`adminSessions/${uid}`, hash);
     return true;
   } catch (err) {

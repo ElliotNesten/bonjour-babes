@@ -1,7 +1,8 @@
-import { joinPath, splitPath, stripUndefined, type Backend, type Unsubscribe } from './types';
+import { applyWrite, getAt, normalize, type Tree } from './tree';
+import type { Backend, Unsubscribe } from './types';
 
 /**
- * Demoläge utan Firebase: hela databasen ligger i localStorage och synkas mellan
+ * Demoläge utan server: hela databasen ligger i localStorage och synkas mellan
  * flikar i samma webbläsare via BroadcastChannel/storage-event.
  *
  * Varje flik får ett eget uid (sessionStorage) så att man kan testa admin,
@@ -12,8 +13,6 @@ import { joinPath, splitPath, stripUndefined, type Backend, type Unsubscribe } f
 const STORAGE_KEY = 'bonjour-babes:local-db';
 const UID_KEY = 'bonjour-babes:local-uid';
 const SERVER_TIME = { '.sv': 'timestamp' };
-
-type Tree = Record<string, unknown>;
 
 function safeGet(storage: Storage | undefined, key: string): string | null {
   try {
@@ -29,69 +28,6 @@ function safeSet(storage: Storage | undefined, key: string, value: string) {
   } catch {
     /* privat läge e.d. – kör vidare i minnet */
   }
-}
-
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === 'object' && !Array.isArray(v);
-}
-
-/** Ersätter servertids-platshållare, tar bort null och tomma objekt (som RTDB). */
-function normalize(value: unknown, now: number): unknown {
-  if (value === null || value === undefined) return null;
-  if (isPlainObject(value)) {
-    if (value['.sv'] === 'timestamp') return now;
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      const n = normalize(v, now);
-      if (n !== null) out[k] = n;
-    }
-    return Object.keys(out).length ? out : null;
-  }
-  if (Array.isArray(value)) {
-    const out: Record<string, unknown> = {};
-    value.forEach((v, i) => {
-      const n = normalize(v, now);
-      if (n !== null) out[String(i)] = n;
-    });
-    if (!Object.keys(out).length) return null;
-    // Läs tillbaka som array om nycklarna är 0..n-1 (som RTDB gör i de flesta fall).
-    const keys = Object.keys(out);
-    if (keys.every((k, i) => k === String(i))) return keys.map((k) => out[k]);
-    return out;
-  }
-  return value;
-}
-
-function getAt(tree: unknown, path: string): unknown {
-  let node: unknown = tree;
-  for (const seg of splitPath(path)) {
-    if (node === null || node === undefined) return null;
-    if (Array.isArray(node)) node = node[Number(seg)];
-    else if (isPlainObject(node)) node = node[seg];
-    else return null;
-  }
-  return node ?? null;
-}
-
-function setAt(tree: Tree, path: string, value: unknown): Tree {
-  const segs = splitPath(path);
-  if (!segs.length) return (isPlainObject(value) ? value : {}) as Tree;
-  const root: Tree = { ...tree };
-  let node: Record<string, unknown> = root;
-  for (let i = 0; i < segs.length - 1; i++) {
-    const seg = segs[i];
-    const next = node[seg];
-    let copy: Record<string, unknown>;
-    if (Array.isArray(next)) copy = Object.fromEntries(next.map((v, idx) => [String(idx), v]));
-    else if (isPlainObject(next)) copy = { ...next };
-    else copy = {};
-    node[seg] = copy;
-    node = copy;
-  }
-  const last = segs[segs.length - 1];
-  if (value === null || value === undefined) delete node[last];
-  else node[last] = value;
-  return root;
 }
 
 export function createLocalBackend(): Backend {
@@ -176,19 +112,13 @@ export function createLocalBackend(): Backend {
       return value === null ? null : (JSON.parse(JSON.stringify(value)) as T);
     },
     async set(path, value) {
-      commit((t) => setAt(t, path, stripUndefined(value) ?? null));
+      commit((t) => applyWrite(t, { op: 'set', path, value }));
     },
     async update(path, values) {
-      commit((t) => {
-        let next = t;
-        for (const [k, v] of Object.entries(stripUndefined(values))) {
-          next = setAt(next, joinPath(path, k), v ?? null);
-        }
-        return next;
-      });
+      commit((t) => applyWrite(t, { op: 'update', path, values }));
     },
     async remove(path) {
-      commit((t) => setAt(t, path, null));
+      commit((t) => applyWrite(t, { op: 'remove', path }));
     },
     pushKey() {
       let now = Date.now();

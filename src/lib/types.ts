@@ -1,11 +1,12 @@
 /**
  * Datamodell för Bonjour Babes.
  *
- * Allt ligger i en Firebase Realtime Database (eller i demoläget i localStorage):
+ * Allt ligger i ett JSON-träd med samma semantik som Firebase Realtime Database: på servern i
+ * Postgres bakom API:t (se src/lib/backend/protocol.ts och server/rules.ts), i demoläget i localStorage.
  *
  *   setup/adminConfigured          true när adminlösenordet är satt (publik flagga)
  *   secret/adminHash               SHA-256 av adminlösenordet (oläsbar för klienter)
- *   adminSessions/{uid}            hash – bevisar att uid är admin (valideras av reglerna)
+ *   adminSessions/{uid}            hash – bevisar att uid är admin (valideras av servern)
  *   pins/{pin}                     gameId – 6-siffrig spel-PIN → spel
  *   games/{gameId}                 Game (se nedan)
  *   hallOfFame/{gameId}            HallOfFameEntry – sparas när ett spel avslutas
@@ -92,7 +93,7 @@ export interface CeremonyState {
 export interface Game {
   meta: GameMeta;
   settings: GameSettings;
-  /** playerId (= Firebase auth uid, eller slumpat id för manuella spelare) → Player */
+  /** playerId (= mobilens anonyma uid från /api/session, eller slumpat id för manuella spelare) → Player */
   players: Record<string, Player>;
   /** Ordningen drinkarna presenteras i (spelar-id). Använd effectiveOrder(game) för att läsa. */
   order: string[];

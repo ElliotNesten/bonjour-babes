@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Loading } from '../../components/Loading';
 import { Logo } from '../../components/Logo';
 import { Ornament } from '../../components/Ornament';
-import { adminLogin, isAdminConfigured, PASSWORD_MIN, setupAdminPassword } from '../../lib/admin';
+import { adminLogin, isAdminConfigured, PASSWORD_MIN, RESET_PASSWORD_SQL, setupAdminPassword } from '../../lib/admin';
+import { isDemoMode } from '../../lib/backend';
 import { href } from '../../lib/router';
 import { errorMessage } from './feedback';
 import { PasswordField } from './parts';
@@ -10,6 +11,8 @@ import { PasswordField } from './parts';
 /**
  * Inloggning för admin. Första gången väljer admin ett lösenord; därefter loggar man in med det.
  * När inloggningen lyckas växlar useIsAdmin() i AdminView automatiskt över till panelen.
+ * Fel lösenord ger "Fel lösenord"; andra fel (t.ex. "För många försök …" när servern begränsar
+ * inloggningsförsöken, eller ingen anslutning) visas med sitt eget meddelande under fältet.
  */
 export function AdminLogin() {
   const [configured, setConfigured] = useState<boolean | undefined>(undefined);
@@ -119,8 +122,7 @@ function LoginForm() {
         {busy ? 'Loggar in…' : 'Logga in'}
       </button>
       <p className="hint center" style={{ margin: 0 }}>
-        Glömt lösenordet? Radera noderna <code className="adm-code">secret</code> och <code className="adm-code">setup</code> i Firebase
-        Console och välj ett nytt.
+        Glömt lösenordet? <ResetHelp />
       </p>
     </form>
   );
@@ -166,8 +168,8 @@ function SetupForm({ onAlreadyConfigured }: { onAlreadyConfigured: () => void })
         <div className="script adm-login__script">Bienvenue</div>
         <h2 className="adm-login__title">Välj adminlösenord</h2>
         <p className="muted adm-login__lead">
-          Du väljer lösenordet en gång. Det sparas säkert som en krypterad hash som ingen kan läsa – inte ens via
-          databasen.
+          Du väljer lösenordet en gång. Det sparas bara som en hash (aldrig i klartext), och servern lämnar aldrig
+          ut den.
         </p>
       </div>
       <input type="text" name="username" autoComplete="username" value="admin" readOnly hidden />
@@ -210,9 +212,19 @@ function SetupForm({ onAlreadyConfigured }: { onAlreadyConfigured: () => void })
         {busy ? 'Sparar…' : 'Spara & logga in'}
       </button>
       <p className="hint center" style={{ margin: 0 }}>
-        Behöver du byta lösenord senare? Radera noderna <code className="adm-code">secret</code> och{' '}
-        <code className="adm-code">setup</code> i Firebase Console, så får du välja ett nytt här.
+        Behöver du byta lösenord senare? <ResetHelp />
       </p>
     </form>
+  );
+}
+
+/** Hur man återställer adminlösenordet (så att man får välja ett nytt här). */
+function ResetHelp() {
+  if (isDemoMode) return <>I demoläget: rensa webbplatsdata för sidan i webbläsaren och välj ett nytt.</>;
+  return (
+    <>
+      I Vercel: <strong>Storage</strong> → din Neon-databas → <strong>Open in Neon</strong> → <strong>SQL Editor</strong>. Kör{' '}
+      <code className="adm-code">{RESET_PASSWORD_SQL}</code> och välj sedan ett nytt lösenord här.
+    </>
   );
 }
