@@ -10,6 +10,9 @@
 .page.adm-page {
   padding-bottom: 0;
   gap: 0;
+  /* Fliken "Min röst" visar spelarvyn – samma skäl som .pl-page: bred dekor får inte göra sidan
+     bredare än skärmen. clip (inte hidden) så att flikraden och åtgärdsfältet förblir sticky. */
+  overflow-x: clip;
 }
 
 .adm-topbar {

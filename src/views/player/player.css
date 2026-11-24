@@ -183,6 +183,10 @@
 
 .pl-page {
   gap: 0;
+  /* Dekor som sticker ut i sidled (strålkastaren under prisutdelningen är 150 % bred) får inte
+     göra sidan bredare än skärmen – annars kan man dra hela vyn åt sidan med fingret i mobilen,
+     trots overflow-x: hidden på body. clip (inte hidden) så att sticky-element fortsätter fungera. */
+  overflow-x: clip;
 }
 
 .pl {
