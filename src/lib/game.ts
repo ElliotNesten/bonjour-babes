@@ -1,6 +1,6 @@
 import { backend } from './backend';
 import { computeResults } from './scoring';
-import { DEFAULT_SETTINGS, effectiveOrder, nextDrinkIndex, normalizeGame, playerEntries } from './selectors';
+import { completedDrinkIds, DEFAULT_SETTINGS, effectiveOrder, nextDrinkIndex, normalizeGame, playerEntries } from './selectors';
 import type { AwardId, Game, GameSettings, HallOfFameEntry, Player, Vote } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -332,6 +332,32 @@ export async function goToDrink(gameId: string, index: number) {
     order,
     'meta/status': 'running',
     current: { index, drinkId: order[index], phase: 'preparing', since: backend.serverTime() },
+  });
+}
+
+/**
+ * Admin: hoppa till en viss drink utan att hoppa över några andra.
+ * Ordningen bygger på position (allt före den aktuella drinken räknas som klart),
+ * så drinken flyttas till platsen direkt efter de redan serverade drinkarna:
+ * – framåt: drinkarna emellan kommer fortfarande efteråt (en drink som bara var
+ *   "på väg" hamnar direkt efter);
+ * – bakåt: drinkarna som redan serverats räknas fortfarande som klara.
+ */
+export async function jumpToDrink(gameId: string, drinkId: string) {
+  const game = await loadGame(gameId);
+  if (!game || !game.players[drinkId]) return;
+  const order = effectiveOrder(game);
+  const done = new Set(completedDrinkIds(game));
+  // En drink som har röstats på räknas som serverad även om röstningen inte hann låsas.
+  if (game.current && game.current.phase !== 'preparing' && game.players[game.current.drinkId]) done.add(game.current.drinkId);
+  done.delete(drinkId);
+  const served = order.filter((id) => done.has(id));
+  const rest = order.filter((id) => !done.has(id) && id !== drinkId);
+  const next = [...served, drinkId, ...rest];
+  await backend.update(gamePath(gameId), {
+    order: next,
+    'meta/status': 'running',
+    current: { index: served.length, drinkId, phase: 'preparing', since: backend.serverTime() },
   });
 }
 

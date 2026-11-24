@@ -80,7 +80,7 @@ export async function hashPassword(password: string): Promise<string> {
   return sha256Fallback(message);
 }
 
-export const PASSWORD_MIN = 4;
+export const PASSWORD_MIN = 8;
 
 /** Har adminlösenordet valts? */
 export async function isAdminConfigured(): Promise<boolean> {

@@ -16,6 +16,10 @@ export function VoteScreen({ gameId, game, uid, drink }: { gameId: string; game:
   const votes = votesForDrink(game, drink.id);
   const mine = votes[uid];
   const [editing, setEditing] = useState(false);
+  // Databasen visar en skickad röst lokalt direkt, innan servern har godkänt den. Formuläret ligger
+  // därför kvar tills skrivningen är bekräftad – annars kunde "Merci !" visas för en röst som
+  // sedan nekas (t.ex. om röstningen hann låsas medan mobilen var offline).
+  const [sending, setSending] = useState(false);
   const expected = expectedVoters(game, drink.id);
   const got = expected.filter((id) => votes[id]).length;
 
@@ -32,17 +36,18 @@ export function VoteScreen({ gameId, game, uid, drink }: { gameId: string; game:
 
   return (
     <div ref={rootRef}>
-      {mine && !editing ? (
+      {mine && !editing && !sending ? (
         <VotedCard drink={drink} vote={mine} got={got} total={expected.length} onEdit={() => switchTo(true)} />
       ) : (
         <VoteForm
-          key={mine ? 'edit' : 'new'}
+          key={editing ? 'edit' : 'new'}
           gameId={gameId}
           game={game}
           drink={drink}
-          initial={mine}
+          initial={editing ? mine : undefined}
+          onSending={setSending}
           onSubmitted={() => switchTo(false)}
-          onCancel={mine ? () => switchTo(false) : undefined}
+          onCancel={editing && mine ? () => switchTo(false) : undefined}
         />
       )}
     </div>
@@ -77,6 +82,7 @@ function VoteForm({
   game,
   drink,
   initial,
+  onSending,
   onSubmitted,
   onCancel,
 }: {
@@ -84,6 +90,7 @@ function VoteForm({
   game: Game;
   drink: Drink;
   initial?: Vote;
+  onSending: (sending: boolean) => void;
   onSubmitted: () => void;
   onCancel?: () => void;
 }) {
@@ -141,6 +148,7 @@ function VoteForm({
       return;
     }
     setBusy(true);
+    onSending(true);
     setError(null);
     try {
       await submitVote(gameId, drink.id, {
@@ -153,9 +161,11 @@ function VoteForm({
       clearDraft(gameId, drink.id);
       vibrate([30, 40, 60]);
       onSubmitted();
+      onSending(false);
+      setBusy(false);
     } catch (err) {
       setError(isPermissionDenied(err) ? 'Röstningen hann stänga 🔒' : 'Kunde inte skicka – kontrollera anslutningen och försök igen');
-    } finally {
+      onSending(false);
       setBusy(false);
     }
   };

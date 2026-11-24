@@ -78,7 +78,7 @@ Sidan körs på **GitHub Pages**. Data sparas i **Firebase Realtime Database**. 
 
 ### 3. Välj adminlösenord
 
-Öppna `https://…/bonjour-babes/#/admin` direkt efter publiceringen och välj ett lösenord. Den som först väljer ett lösenord blir admin. Lösenordet sparas som en hash som ingen kan läsa.
+Öppna `https://…/bonjour-babes/#/admin` direkt efter publiceringen och välj ett lösenord (minst 8 tecken – välj något som gästerna inte kan gissa). Den som först väljer ett lösenord blir admin. Lösenordet sparas som en hash som ingen kan läsa.
 
 *Glömt lösenordet?* Radera noderna `secret` och `setup` under fliken **Data** i Realtime Database och välj ett nytt.
 

@@ -47,21 +47,21 @@ describe('adminlösenord (demoläge)', () => {
   });
 
   it('sparar hashen, sätter flaggan och loggar in', async () => {
-    await setupAdminPassword('santé');
+    await setupAdminPassword('santé-babes');
     const data = db.data() as { secret: { adminHash: string }; setup: { adminConfigured: boolean }; adminSessions: Record<string, string> };
-    expect(data.secret.adminHash).toBe(expected('santé'));
+    expect(data.secret.adminHash).toBe(expected('santé-babes'));
     expect(data.setup.adminConfigured).toBe(true);
-    expect(data.adminSessions.admin).toBe(expected('santé'));
+    expect(data.adminSessions.admin).toBe(expected('santé-babes'));
     expect(await isAdminConfigured()).toBe(true);
   });
 
   it('loggar bara in med rätt lösenord och kan logga ut', async () => {
-    await setupAdminPassword('santé');
+    await setupAdminPassword('santé-babes');
     db.setUid('mobil-2');
     expect(await adminLogin('fel')).toBe(false);
     expect((db.data().adminSessions as Record<string, string>)['mobil-2']).toBeUndefined();
-    expect(await adminLogin('santé')).toBe(true);
-    expect((db.data().adminSessions as Record<string, string>)['mobil-2']).toBe(expected('santé'));
+    expect(await adminLogin('santé-babes')).toBe(true);
+    expect((db.data().adminSessions as Record<string, string>)['mobil-2']).toBe(expected('santé-babes'));
     await adminLogout();
     expect((db.data().adminSessions as Record<string, string>)['mobil-2']).toBeUndefined();
   });

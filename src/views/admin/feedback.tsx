@@ -64,11 +64,22 @@ interface DialogState extends ConfirmOptions {
 
 let toastSeq = 0;
 
+/** Spärrnyckel efter en lyckad åtgärd (inga knappar visar "Ett ögonblick…" för den). */
+const COOLDOWN = '__cooldown';
+const COOLDOWN_MS = 700;
+
 export function AdminFeedback({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const pendingRef = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
   const dismiss = useCallback((id: number) => {
@@ -121,19 +132,27 @@ export function AdminFeedback({ children }: { children: ReactNode }) {
       if (pendingRef.current) return false;
       pendingRef.current = key;
       setPending(key);
+      let ok = false;
       try {
         await fn();
         if (opts.success) toast(opts.success, 'success');
-        return true;
+        ok = true;
       } catch (err) {
         const msg = errorMessage(err);
         if (opts.onError) opts.onError(msg);
         else toast(msg, 'error');
-        return false;
-      } finally {
-        pendingRef.current = null;
-        setPending(null);
       }
+      // Spärren ligger kvar en kort stund efter en lyckad åtgärd (knapparna är synligt avstängda):
+      // knappen byter till nästa åtgärd på samma plats, så ett snabbt dubbeltryck skulle annars
+      // hoppa ett steg för långt – t.ex. förbi ett avslöjande under prisutdelningen.
+      if (ok && mounted.current) {
+        pendingRef.current = COOLDOWN;
+        setPending(COOLDOWN);
+        await new Promise((r) => setTimeout(r, COOLDOWN_MS));
+      }
+      pendingRef.current = null;
+      if (mounted.current) setPending(null);
+      return ok;
     },
     [toast],
   );

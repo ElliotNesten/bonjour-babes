@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Avatar } from '../../components/Avatar';
-import { DRINK_MAX, editPlayer, goToDrink, moveInOrder, NAME_MAX, removePlayer } from '../../lib/game';
+import { DRINK_MAX, editPlayer, jumpToDrink, moveInOrder, NAME_MAX, removePlayer } from '../../lib/game';
 import { completedDrinkIds, effectiveOrder } from '../../lib/selectors';
 import type { Game, Player } from '../../lib/types';
 import { useFeedback } from './feedback';
@@ -104,13 +104,14 @@ function PlayerRow({ id, index, total, player, state, mode, isMe, isLate, canMov
         <>
           <strong>{player.drink}</strong> blir nästa drink på väg på storskärmen.
           {cur && game.current?.phase === 'voting' && <> Röstningen för {cur.name}s drink stängs.</>}
-          {state === 'done' && <> Betygen den redan har fått ligger kvar och kan ändras om du öppnar röstningen igen.</>}
+          {state === 'upcoming' && <> Ingen drink hoppas över – de som stod före i kön kommer direkt efteråt.</>}
+          {state === 'done' && <> Betygen den redan har fått ligger kvar och kan ändras om du öppnar röstningen igen. Drinkarna som redan serverats räknas fortfarande som klara.</>}
         </>
       ),
       confirmLabel: 'Hoppa hit',
     });
     if (!ok) return;
-    if (await run(`jump:${id}`, () => goToDrink(gameId, index), { success: `${player.name}s drink är på väg` })) onClose();
+    if (await run(`jump:${id}`, () => jumpToDrink(gameId, id), { success: `${player.name}s drink är på väg` })) onClose();
   };
 
   const remove = async () => {

@@ -24,6 +24,7 @@ import {
   findGameByPin,
   finishGame,
   goToDrink,
+  jumpToDrink,
   joinGame,
   loadGame,
   moveInOrder,
@@ -40,7 +41,7 @@ import {
   submitVote,
 } from '../../src/lib/game';
 import { computeResults } from '../../src/lib/scoring';
-import { DEFAULT_SETTINGS, effectiveOrder } from '../../src/lib/selectors';
+import { completedDrinkIds, DEFAULT_SETTINGS, effectiveOrder, nextDrinkIndex } from '../../src/lib/selectors';
 import type { Game, HallOfFameEntry } from '../../src/lib/types';
 import type { FakeBackend } from './fakeBackend';
 import { allOf } from './fixtures';
@@ -356,3 +357,51 @@ describe('admin: deltagare', () => {
     expect(db.data()).toEqual({});
   });
 });
+
+describe('jumpToDrink', () => {
+  it('framåt: hoppar inte över drinkarna emellan', async () => {
+    const { gameId } = await setup(['A', 'B', 'C', 'D', 'E']);
+    await startGame(gameId);
+    await openVoting(gameId);
+    await closeVoting(gameId); // a är klar
+    await jumpToDrink(gameId, 'd');
+    let g = await game(gameId);
+    expect(g.order).toEqual(['a', 'd', 'b', 'c', 'e']);
+    expect(g.current).toMatchObject({ index: 1, drinkId: 'd', phase: 'preparing' });
+    expect(completedDrinkIds(g)).toEqual(['a']);
+    expect(nextDrinkIndex(g)).toBe(2); // b står på tur efter d
+    await closeVoting(gameId);
+    expect(await nextDrink(gameId)).toBe(true);
+    g = await game(gameId);
+    expect(g.current?.drinkId).toBe('b');
+  });
+
+  it('framåt från en drink som bara är "på väg": den drinken kommer direkt efter', async () => {
+    const { gameId } = await setup(['A', 'B', 'C']);
+    await startGame(gameId); // a på väg
+    await jumpToDrink(gameId, 'c');
+    const g = await game(gameId);
+    expect(g.order).toEqual(['c', 'a', 'b']);
+    expect(completedDrinkIds(g)).toEqual([]);
+    expect(nextDrinkIndex(g)).toBe(1);
+  });
+
+  it('bakåt: redan serverade drinkar räknas fortfarande som klara', async () => {
+    const { gameId } = await setup(['A', 'B', 'C', 'D']);
+    await startGame(gameId);
+    for (let i = 0; i < 2; i++) {
+      await openVoting(gameId);
+      await closeVoting(gameId);
+      await nextDrink(gameId);
+    }
+    await openVoting(gameId);
+    await closeVoting(gameId); // a, b, c klara
+    await jumpToDrink(gameId, 'a');
+    const g = await game(gameId);
+    expect(g.order).toEqual(['b', 'c', 'a', 'd']);
+    expect(completedDrinkIds(g)).toEqual(['b', 'c']);
+    expect(g.current).toMatchObject({ drinkId: 'a', phase: 'preparing' });
+    expect(nextDrinkIndex(g)).toBe(3); // d, inte b igen
+  });
+});
+
