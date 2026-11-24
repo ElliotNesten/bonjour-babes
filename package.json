@@ -6,15 +6,12 @@
   "description": "Bonjour Babes – drinktävling med live-röstning, prisutdelning och Hall of Fame",
   "scripts": {
     "dev": "vite",
-    "dev:emu": "vite --mode emulator",
     "dev:local": "vite --mode demo",
-    "build": "tsc --noEmit && vite build",
-    "build:emu": "tsc --noEmit && vite build --mode emulator --outDir dist-emu",
+    "build": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.server.json && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.ts",
-    "test:rules": "env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy firebase emulators:exec --only database,auth --project demo-bonjour \"npx vitest run --config vitest.rules.config.ts\"",
-    "emulators": "firebase emulators:start --only database,auth --project demo-bonjour"
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tests",
+    "test": "vitest run",
+    "test:pg": "vitest run tests/server"
   },
   "dependencies": {
     "@vercel/functions": "^3.11.3",

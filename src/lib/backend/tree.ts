@@ -25,6 +25,7 @@ export function normalize(value: unknown, now: number): unknown {
     if (value['.sv'] === 'timestamp') return now;
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
+      if (k === '__proto__') continue; // skulle annars sätta prototypen i stället för en nyckel
       const n = normalize(v, now);
       if (n !== null) out[k] = n;
     }

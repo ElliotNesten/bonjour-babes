@@ -672,7 +672,7 @@ describe('regelmotorn', () => {
     const key = docKeyOf(path)!;
     const tree = setAt(setAt({}, key, old.get(key) ?? null), path, value);
     const next = new Map(old).set(key, normalize(getAt(tree, key), 1234));
-    return checkWrite({ auth, locations: [segs(path)], oldRoot: docSource(old), newRoot: docSource(next), now: 1234 }).ok;
+    return checkWrite({ auth, locations: [segs(path)], oldRoot: docSource(old), newRoot: docSource(next), now: 1234 }, rules).ok;
   }
 
   const game = (status: GameStatus, extra: Record<string, unknown> = {}) => ({
@@ -682,7 +682,12 @@ describe('regelmotorn', () => {
   });
 
   it('nekar auth = null även om token-kontrollen skulle släppas förbi', () => {
-    const docs = { 'games/g': game('running', { current: { index: 0, drinkId: 'alice', phase: 'voting', since: 1 } }), secret: null, setup: null };
+    const docs = {
+      'games/g': game('running', { current: { index: 0, drinkId: 'alice', phase: 'voting', since: 1 } }),
+      secret: null,
+      setup: null,
+      'adminSessions/bob': null,
+    };
     const vote = { taste: 5, look: 5, creativity: 5, again: 5, at: 1 };
     expect(canSet(docs, { uid: 'bob' }, 'games/g/votes/alice/bob', vote)).toBe(true);
     expect(canSet(docs, null, 'games/g/votes/alice/bob', vote)).toBe(false);

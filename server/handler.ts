@@ -160,18 +160,17 @@ function newUid(): string {
   return uid;
 }
 
-async function authFrom(request: Request, store: Store): Promise<{ auth: Auth; tokenSent: boolean }> {
-  const header = request.headers.get('authorization') ?? '';
-  const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
-  if (!match) return { auth: null, tokenSent: header.trim() !== '' };
+/** Inloggningen från `Authorization: Bearer <token>`, eller null om token saknas eller är ogiltig. */
+async function authFrom(request: Request, store: Store): Promise<Auth> {
+  const match = /^Bearer\s+(\S+)$/i.exec((request.headers.get('authorization') ?? '').trim());
+  if (!match) return null;
   const token = match[1];
   const dot = token.lastIndexOf('.');
   const uid = token.slice(0, dot);
-  if (dot < 0 || !UID_RE.test(uid)) return { auth: null, tokenSent: true };
+  if (dot < 0 || !UID_RE.test(uid)) return null;
   const expected = Buffer.from(sign(await sessionSecret(store), uid));
   const given = Buffer.from(token.slice(dot + 1));
-  const ok = given.length === expected.length && timingSafeEqual(given, expected);
-  return { auth: ok ? { uid } : null, tokenSent: true };
+  return given.length === expected.length && timingSafeEqual(given, expected) ? { uid } : null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -223,10 +222,14 @@ function parsePath(path: unknown): string[] | null {
   return segs.every((s) => isValidKey(s) && !BAD_TEXT.test(s)) ? segs : null;
 }
 
-/** Felmeddelande om värdet inte går att spara, annars null. */
+/** Felmeddelande om värdet (som klienten skickade det) inte går att spara, annars null. */
 function checkValue(value: unknown, depth = 0): string | null {
   if (depth > MAX_DEPTH) return 'Värdet är för djupt nästlat';
   if (value === null) return null;
+  if (isPlainObject(value) && Object.prototype.hasOwnProperty.call(value, '.sv')) {
+    // Platshållare för servertid – bara exakt { ".sv": "timestamp" } (som Firebase serverTimestamp()).
+    return value['.sv'] === 'timestamp' && Object.keys(value).length === 1 ? null : 'Ogiltig platshållare (.sv)';
+  }
   switch (typeof value) {
     case 'string':
       return BAD_TEXT.test(value) ? 'Texten innehåller ogiltiga tecken' : null;
@@ -327,7 +330,7 @@ async function handleRead(request: Request, store: Store): Promise<Response> {
     return { path: r.path, rev: rev as number | undefined };
   });
 
-  const { auth } = await authFrom(request, store); // ogiltig token = läs som oinloggad
+  const auth = await authFrom(request, store); // ogiltig token = läs som oinloggad
   const now = Date.now();
 
   const targets: ReadTarget[] = entries.map(({ path }) => {
@@ -412,12 +415,16 @@ function parseWriteRequest(body: unknown): ParsedWrite[] {
     }
   }
 
+  // Värdena kontrolleras som klienten skickade dem (innan något kopieras – t.ex. skulle en nyckel
+  // "__proto__" annars försvinna tyst). Platshållare för servertid godtas; tiden sätts i transaktionen.
+  for (const value of req.op === 'set' ? [req.value] : req.op === 'update' ? Object.values(req.values) : []) {
+    const err = checkValue(value);
+    if (err) throw new HttpError('bad_request', err);
+  }
+
   const writes = writesOf(req).map(({ path, value }) => {
     const segs = parsePath(path);
     if (!segs) throw new HttpError('bad_request', `Ogiltig sökväg: "${path}"`);
-    // Platshållare för servertid godtas här; själva tiden sätts i transaktionen.
-    const err = checkValue(normalize(value, 0));
-    if (err) throw new HttpError('bad_request', err);
     return { segs, value };
   });
   for (let i = 0; i < writes.length; i++) {
@@ -431,7 +438,7 @@ function parseWriteRequest(body: unknown): ParsedWrite[] {
 }
 
 async function handleWrite(request: Request, store: Store): Promise<Response> {
-  const { auth } = await authFrom(request, store);
+  const auth = await authFrom(request, store);
   if (!auth) return fail('unauthenticated');
   const writes = parseWriteRequest(await readJson(request));
   if (!writes.length) return json(200, { ok: true, rev: 0 }); // update med tomt objekt
