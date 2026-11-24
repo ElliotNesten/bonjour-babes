@@ -77,7 +77,7 @@ export async function seed(opts: SeedOptions = {}): Promise<{ gameId: string; pi
   }
 
   const gameId = backend.pushKey();
-  const pin = String(100000 + Math.floor(rand() * 900000));
+  const pin = String(100000 + Math.floor(((rand() + Math.random()) % 1) * 900000));
   const base = Date.now() - 3 * 3600_000;
   const ids = Array.from({ length: n }, (_, i) => (i === 0 && meAsPlayer ? uid : `seed${i}-${gameId.slice(-4)}`));
   const players: Record<string, Player> = {};

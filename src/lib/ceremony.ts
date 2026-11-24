@@ -59,14 +59,14 @@ export function stepLabel(step: CeremonyStep, results: Results): string {
     case 'intro':
       return 'Intro – Mesdames et messieurs';
     case 'rest': {
-      const first = results.ranking[step.positions[step.positions.length - 1]];
-      const last = results.ranking[step.positions[0]];
-      return `Avslöja plats ${first ? first.rank : 4}–${last ? last.rank : results.ranking.length}`;
+      // Etiketten bygger på positionen i avslöjandeordningen, inte på rank,
+      // så att den inte heller avslöjar delade placeringar (t.ex. "plats 1–1").
+      const from = Math.min(...step.positions) + 1;
+      const to = Math.max(...step.positions) + 1;
+      return from === to ? `Avslöja plats ${from}` : `Avslöja plats ${from}–${to}`;
     }
-    case 'place': {
-      const rank = results.ranking[step.position]?.rank ?? step.position + 1;
-      return `Avslöja ${placeLabel(rank)} plats ${['🥇', '🥈', '🥉'][step.position] ?? ''}`.trim();
-    }
+    case 'place':
+      return `Avslöja ${placeLabel(step.position + 1)} plats ${['🥇', '🥈', '🥉'][step.position] ?? ''}`.trim();
     case 'podium':
       return 'Visa prispallen';
     case 'award': {

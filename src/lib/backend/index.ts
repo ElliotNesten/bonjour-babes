@@ -13,7 +13,9 @@ function chooseBackend(): Backend {
         apiKey: 'demo-api-key',
         authDomain: 'demo-bonjour.firebaseapp.com',
         projectId: 'demo-bonjour',
-        databaseURL: 'http://127.0.0.1:9000/?ns=demo-bonjour',
+        // firebase-tools laddar database.rules.json för standardinstansen "<projekt>-default-rtdb".
+        // Andra namnrymder i emulatorn har öppna regler (allt tillåtet).
+        databaseURL: 'http://127.0.0.1:9000/?ns=demo-bonjour-default-rtdb',
         appId: 'demo-app',
       },
       { host: '127.0.0.1', databasePort: 9000, authPort: 9099 },

@@ -164,7 +164,8 @@ export function nextDrinkIndex(game: Game): number | null {
   const order = effectiveOrder(game);
   if (!game.current) return order.length ? 0 : null;
   const idx = order.indexOf(game.current.drinkId);
-  const next = (idx >= 0 ? idx : game.current.index) + 1;
+  // Finns inte den aktuella drinkens skapare kvar har drinken efter flyttat upp till current.index.
+  const next = idx >= 0 ? idx + 1 : game.current.index;
   return next < order.length ? next : null;
 }
 
@@ -176,7 +177,8 @@ export function completedDrinkIds(game: Game): string[] {
   }
   if (!game.current) return [];
   const idx = order.indexOf(game.current.drinkId);
-  if (idx < 0) return [];
+  // Den aktuella drinkens skapare finns inte kvar: allt före dess plats är klart.
+  if (idx < 0) return order.slice(0, Math.max(0, game.current.index));
   return order.slice(0, game.current.phase === 'closed' ? idx + 1 : idx);
 }
 

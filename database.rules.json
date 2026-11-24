@@ -14,8 +14,8 @@
 
     "secret": {
       "adminHash": {
-        ".write": "auth != null && !data.exists()",
-        ".validate": "newData.isString() && newData.val().length === 64"
+        ".write": "auth != null && !data.exists() && newData.parent().parent().child('setup').child('adminConfigured').val() === true",
+        ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{64}$/)"
       },
       "$other": { ".validate": false }
     },

@@ -1,0 +1,112 @@
+/* =====================================================================
+   StoryButton – Instagram Story-bilden (förhandsvisning & nedladdning)
+   ===================================================================== */
+
+.story-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: story-spin 0.8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes story-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.story-btn__label {
+  text-align: center;
+}
+
+.story-error {
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+.story-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  background: rgba(5, 4, 8, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: story-fade 0.25s var(--ease-out) both;
+}
+
+@keyframes story-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.story-modal__panel {
+  width: min(420px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 18px 18px;
+  background: linear-gradient(180deg, rgba(31, 24, 35, 0.97), rgba(14, 11, 18, 0.97));
+  animation: bb-pop 0.4s var(--ease-spring) both;
+}
+
+.story-modal__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  min-height: 44px;
+  border-color: transparent;
+  color: var(--text-muted);
+  z-index: 1;
+}
+
+.story-modal__close:hover {
+  color: var(--gold-light);
+}
+
+.story-modal__title {
+  margin: 0;
+  font-style: italic;
+  font-size: 1.35rem;
+}
+
+.story-modal__frame {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 6px;
+}
+
+.story-modal__img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(56vh, 560px);
+  max-height: min(56dvh, 560px);
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 0 0 5px rgba(217, 178, 111, 0.08),
+    0 24px 60px rgba(0, 0, 0, 0.6);
+  background: var(--ink);
+  -webkit-touch-callout: default;
+}
+
+.story-modal__hint {
+  margin: 4px 0 0;
+}
+
+.story-modal__tip {
+  margin: 0;
+  font-size: 0.78rem;
+}

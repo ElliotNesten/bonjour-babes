@@ -60,8 +60,12 @@ export function getAward(id: AwardId): AwardDef {
 
 /** En domares totalpoäng för en drink, 10–100 (oavrundad). */
 export function voteTotal(v: Pick<Vote, CategoryId>): number {
-  const sum = CATEGORIES.reduce((s, c) => s + c.weight * v[c.id], 0);
-  return (sum / WEIGHT_SUM) * 10;
+  return (weightedSum(v) / WEIGHT_SUM) * 10;
+}
+
+/** Σ(betyg × vikt) – ett heltal 9–90 för en giltig röst. */
+function weightedSum(v: Pick<Vote, CategoryId>): number {
+  return CATEGORIES.reduce((s, c) => s + c.weight * v[c.id], 0);
 }
 
 export const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -218,8 +222,12 @@ export function computeResults(game: Game): Results {
       judges[0].dropped = true;
       judges[judges.length - 1].dropped = true;
     }
-    const counted = judges.filter((j) => !j.dropped).map((j) => j.total);
-    const score = counted.length ? round1(mean(counted)) : null;
+    // Räkna slutpoängen ur de (heltaliga) viktade summorna så att exakta halvor (t.ex. 58,75)
+    // avrundas uppåt. Ett flyttalssnitt av totalpoängen kan bli 58,74999… och avrundas fel.
+    const counted = judges.filter((j) => !j.dropped);
+    const score = counted.length
+      ? Math.round((counted.reduce((s, j) => s + weightedSum(j.vote), 0) * 100) / (WEIGHT_SUM * counted.length)) / 10
+      : null;
 
     const categoryAvg = Object.fromEntries(
       CATEGORIES.map((c) => [c.id, judges.length ? mean(judges.map((j) => j.vote[c.id])) : null]),

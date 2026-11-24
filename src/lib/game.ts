@@ -225,13 +225,16 @@ export async function editPlayer(gameId: string, playerId: string, patch: Partia
 export async function removePlayer(gameId: string, playerId: string) {
   const game = await loadGame(gameId);
   if (!game) return;
+  const fullOrder = effectiveOrder(game);
+  const order = fullOrder.filter((id) => id !== playerId);
   const updates: Record<string, unknown> = {
     [`players/${playerId}`]: null,
     [`votes/${playerId}`]: null,
-    order: effectiveOrder(game).filter((id) => id !== playerId),
+    order,
   };
   for (const drinkId of Object.keys(game.votes)) {
-    if (game.votes[drinkId]?.[playerId]) updates[`votes/${drinkId}/${playerId}`] = null;
+    // votes/{playerId} tas redan bort i sin helhet – en barnsökväg till den skulle göra uppdateringen ogiltig.
+    if (drinkId !== playerId && game.votes[drinkId]?.[playerId]) updates[`votes/${drinkId}/${playerId}`] = null;
   }
   for (const [awardId, byVoter] of Object.entries(game.awardVotes)) {
     for (const [voterId, target] of Object.entries(byVoter ?? {})) {
@@ -239,13 +242,17 @@ export async function removePlayer(gameId: string, playerId: string) {
     }
   }
   if (game.current?.drinkId === playerId) {
-    // Den aktuella drinken försvann – backa till "förbereder" för samma position.
-    const order = (updates.order as string[]) ?? [];
-    const idx = Math.min(game.current.index, Math.max(0, order.length - 1));
-    if (order.length) {
+    // Den aktuella drinken försvann – drinken efter har flyttat upp till samma plats och blir "på väg".
+    // Var det den sista drinken finns ingen nästa: stanna på den sista (redan visade) drinken med låst röstning.
+    const pos = fullOrder.indexOf(playerId);
+    const idx = pos >= 0 ? pos : game.current.index;
+    if (!order.length) {
+      updates.current = null;
+    } else if (idx < order.length) {
       updates.current = { index: idx, drinkId: order[idx], phase: 'preparing', since: backend.serverTime() };
     } else {
-      updates.current = null;
+      const last = order.length - 1;
+      updates.current = { index: last, drinkId: order[last], phase: 'closed', since: backend.serverTime() };
     }
   }
   await backend.update(gamePath(gameId), updates);

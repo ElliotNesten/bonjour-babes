@@ -1,0 +1,1673 @@
+/* =====================================================================
+   Adminpanelen – värdens mobil. Mobil-först, en huvudåtgärd i taget.
+   Alla klasser har prefixet .adm-
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   Sidlayout
+   --------------------------------------------------------------------- */
+
+.page.adm-page {
+  padding-bottom: 0;
+  gap: 0;
+}
+
+.adm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.adm-backlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  font-family: var(--font-deco);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.adm-backlink:hover {
+  color: var(--gold-light);
+}
+
+.btn.adm-btn-44 {
+  min-height: 44px;
+}
+
+.btn.adm-iconbtn {
+  width: 44px;
+  min-height: 44px;
+}
+
+.adm-nowrap {
+  white-space: nowrap;
+}
+
+.adm-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.7em;
+  height: 1.7em;
+  padding: 0 0.45em;
+  margin-left: 0.25em;
+  border-radius: 999px;
+  background: rgba(217, 178, 111, 0.14);
+  border: 1px solid var(--line-strong);
+  color: var(--gold-light);
+  font-family: var(--font-body);
+  font-size: 0.72em;
+  font-weight: 700;
+  vertical-align: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-code {
+  font-size: 0.85em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--line);
+  color: var(--gold-light);
+}
+
+/* ---------------------------------------------------------------------
+   Header i spelvyn
+   --------------------------------------------------------------------- */
+
+.adm-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: -8px;
+}
+
+.adm-header__main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 4px 0 14px;
+}
+
+.adm-header__titles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.adm-header__name {
+  margin: 0;
+  font-size: clamp(1.45rem, 6.4vw, 1.9rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.adm-header__pin {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 12px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, rgba(217, 178, 111, 0.12), rgba(217, 178, 111, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 236, 190, 0.12);
+}
+
+.adm-header__pin-label {
+  font-family: var(--font-deco);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: var(--gold);
+}
+
+.adm-header__pin-digits {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 7vw, 2.1rem);
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------
+   Flikar
+   --------------------------------------------------------------------- */
+
+.adm-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 -16px;
+  padding: 8px 16px 10px;
+  transition: background 0.25s;
+}
+
+.adm-tabs.is-stuck {
+  padding-top: calc(8px + var(--safe-top));
+  background: linear-gradient(180deg, rgba(10, 9, 16, 0.96) 78%, rgba(10, 9, 16, 0));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.adm-tabs-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+.adm-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font-deco);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.adm-tab:hover {
+  border-color: var(--line-strong);
+}
+
+.adm-tab.is-active {
+  color: var(--gold-light);
+  border-color: var(--line-strong);
+  background: linear-gradient(180deg, rgba(217, 178, 111, 0.2), rgba(217, 178, 111, 0.07));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 236, 190, 0.18),
+    0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.adm-tab__badge {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #1a0a0d;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  box-shadow: 0 0 0 3px rgba(239, 127, 134, 0.25);
+  animation: adm-badge 1.6s ease-in-out infinite;
+}
+
+@keyframes adm-badge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(239, 127, 134, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(239, 127, 134, 0);
+  }
+}
+
+.adm-tabpanel {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+
+.adm-tabpanel[hidden] {
+  display: none;
+}
+
+.adm-tabpanel--me {
+  padding-bottom: calc(40px + var(--safe-bottom));
+}
+
+.adm-panel {
+  padding-bottom: 20px;
+}
+
+/* ---------------------------------------------------------------------
+   Åtgärdsfält längst ner (sticky)
+   --------------------------------------------------------------------- */
+
+.adm-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 25;
+  margin: auto -16px 0;
+  padding: 22px 16px calc(14px + var(--safe-bottom));
+  background: linear-gradient(0deg, var(--ink) 0%, var(--ink) calc(100% - 24px), rgba(10, 9, 16, 0) 100%);
+}
+
+.adm-bar__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-bar__hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.adm-bar__row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.btn.adm-cta {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 66px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  text-align: center;
+  white-space: normal;
+}
+
+.adm-cta__kicker {
+  font-family: var(--font-deco);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.78;
+  line-height: 1.2;
+}
+
+.adm-cta__label {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.adm-cta--compact .adm-cta__label {
+  font-size: 0.96rem;
+  -webkit-line-clamp: 3;
+}
+
+.adm-cta__label em {
+  font-style: italic;
+  font-weight: 600;
+}
+
+.adm-cta--glow {
+  animation: adm-glow 2.4s ease-in-out infinite;
+}
+
+.btn--gold.adm-cta--glow {
+  --adm-glow: rgba(217, 178, 111, 0.55);
+}
+
+.btn--bordeaux.adm-cta--glow {
+  --adm-glow: rgba(155, 39, 71, 0.75);
+}
+
+@keyframes adm-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.35),
+      0 0 0 0 var(--adm-glow, rgba(217, 178, 111, 0.5)),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.35),
+      0 0 0 7px rgba(217, 178, 111, 0),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+}
+
+.btn.adm-back {
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 66px;
+  width: 72px;
+  padding: 6px;
+  border-radius: 20px;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+
+.adm-back__text {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+}
+
+/* ---------------------------------------------------------------------
+   Småkomponenter
+   --------------------------------------------------------------------- */
+
+.adm-progress {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 244, 222, 0.08);
+  overflow: hidden;
+}
+
+.adm-progress__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--gold-grad);
+  box-shadow: 0 0 12px rgba(217, 178, 111, 0.5);
+  transition: width 0.6s var(--ease-out);
+}
+
+.adm-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adm-section-head__title {
+  margin: 2px 0 0;
+  font-size: 1.3rem;
+}
+
+.adm-tag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font-deco);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.adm-tag--gold {
+  color: var(--gold-light);
+  border-color: var(--line-strong);
+  background: rgba(217, 178, 111, 0.12);
+}
+
+.adm-tag--new {
+  color: #ffe0e3;
+  border-color: rgba(232, 163, 168, 0.5);
+  background: rgba(155, 39, 71, 0.35);
+}
+
+/** Liten knapp ("chip") för sekundära åtgärder – minst 44px hög. */
+.adm-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s var(--ease-out),
+    opacity 0.2s;
+}
+
+.adm-chip:hover {
+  border-color: var(--line-strong);
+}
+
+.adm-chip:active {
+  transform: scale(0.96);
+}
+
+.adm-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.adm-chip--icon {
+  width: 44px;
+  padding: 0;
+}
+
+.adm-chip--gold {
+  color: var(--gold-light);
+  border-color: var(--line-strong);
+  background: rgba(217, 178, 111, 0.12);
+}
+
+.adm-chip--danger {
+  color: var(--danger);
+  border-color: rgba(239, 127, 134, 0.35);
+  background: rgba(239, 127, 134, 0.08);
+}
+
+/** Uppmaning (t.ex. "Din röst saknas"). */
+.adm-nudge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(135deg, rgba(217, 178, 111, 0.14), rgba(217, 178, 111, 0.04));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 0.15s var(--ease-out),
+    border-color 0.2s;
+  animation: bb-fade-up 0.5s var(--ease-out) both;
+}
+
+.adm-nudge:active {
+  transform: scale(0.98);
+}
+
+.adm-nudge--hot {
+  border-color: rgba(232, 163, 168, 0.55);
+  background: linear-gradient(135deg, rgba(155, 39, 71, 0.55), rgba(110, 20, 48, 0.35));
+  box-shadow: 0 10px 30px rgba(110, 20, 48, 0.35);
+}
+
+.adm-nudge__icon {
+  font-size: 1.6rem;
+}
+
+.adm-nudge strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.adm-nudge__sub {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.adm-nudge--hot .adm-nudge__sub {
+  color: #f3d3d6;
+}
+
+.adm-nudge__arrow {
+  font-size: 1.3rem;
+  color: var(--gold-light);
+}
+
+.adm-empty,
+.card.adm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 12px;
+}
+
+.adm-empty__icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.btn.adm-btn-plain {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.adm-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.adm-add-row:hover {
+  color: var(--gold-light);
+  background: rgba(217, 178, 111, 0.06);
+}
+
+.adm-add-row:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adm-add-row__plus {
+  color: var(--gold);
+  font-size: 1.1rem;
+}
+
+.adm-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.card.adm-more {
+  padding: 0;
+}
+
+.adm-more__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 18px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-deco);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.adm-more__summary::-webkit-details-marker {
+  display: none;
+}
+
+.adm-more__chev {
+  font-size: 1.2rem;
+  transition: transform 0.25s var(--ease-out);
+}
+
+.adm-more[open] .adm-more__chev {
+  transform: rotate(180deg);
+}
+
+.adm-more__body {
+  padding: 0 18px 18px;
+}
+
+/* ---------------------------------------------------------------------
+   Lobby: inbjudan
+   --------------------------------------------------------------------- */
+
+.adm-join {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.qr.adm-join__qr {
+  flex: 0 0 auto;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.adm-join__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adm-join__lead {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.adm-join__lead strong {
+  color: var(--gold-light);
+}
+
+.adm-join__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------------
+   Deltagarlistan / ordningen
+   --------------------------------------------------------------------- */
+
+.adm-plist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adm-prow {
+  border-radius: 14px;
+  border: 1px solid rgba(217, 178, 111, 0.12);
+  background: rgba(255, 244, 222, 0.03);
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  animation: bb-fade-up 0.45s var(--ease-out) both;
+}
+
+.adm-prow.is-open {
+  border-color: var(--line-strong);
+  background: rgba(255, 244, 222, 0.06);
+}
+
+.adm-prow__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px 8px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 14px;
+  touch-action: manipulation;
+}
+
+.adm-prow__pos {
+  flex: 0 0 auto;
+  width: 26px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.adm-prow__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.adm-prow__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.adm-prow__name-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.adm-prow__drink {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.adm-prow__chevron {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  transition: transform 0.25s var(--ease-out);
+}
+
+.adm-prow.is-open .adm-prow__chevron {
+  transform: rotate(180deg);
+  color: var(--gold);
+}
+
+.adm-prow__panel {
+  padding: 2px 10px 12px;
+  animation: bb-fade-up 0.3s var(--ease-out) both;
+}
+
+.adm-prow__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Tidslinjens tillstånd */
+.adm-prow--done .adm-prow__pos {
+  color: var(--success);
+}
+
+.adm-prow--done .adm-prow__name,
+.adm-prow--done .adm-prow__drink {
+  opacity: 0.6;
+}
+
+.adm-prow--current {
+  border-color: var(--line-strong);
+  background: linear-gradient(90deg, rgba(217, 178, 111, 0.14), rgba(217, 178, 111, 0.03));
+}
+
+.adm-prow--current .adm-prow__pos {
+  color: var(--gold-light);
+  animation: bb-pulse 1.6s infinite;
+}
+
+.adm-prow--upcoming .adm-prow__pos {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+.adm-edit {
+  padding-top: 4px;
+}
+
+/* ---------------------------------------------------------------------
+   Inställningar
+   --------------------------------------------------------------------- */
+
+.adm-toggles {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle.adm-toggle {
+  align-items: flex-start;
+  padding: 14px 0;
+  border-top: 1px solid rgba(217, 178, 111, 0.12);
+}
+
+.toggle.adm-toggle:first-child {
+  border-top: 0;
+}
+
+.toggle.adm-toggle input {
+  margin-top: 2px;
+}
+
+.toggle.adm-toggle input:disabled {
+  opacity: 0.55;
+}
+
+.adm-toggle__title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.adm-toggle__hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.83rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.adm-inline-form {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.adm-inline-form .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.adm-inline-form .btn {
+  flex: 0 0 auto;
+  min-height: 52px;
+  border-radius: var(--radius-sm);
+}
+
+.adm-optional {
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+}
+
+.adm-manual {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--line-strong);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.adm-manual__title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+/* ---------------------------------------------------------------------
+   Pågående: aktuell drink & röster
+   --------------------------------------------------------------------- */
+
+.adm-current {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.adm-current--voting {
+  border-color: rgba(232, 163, 168, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(155, 39, 71, 0.35),
+    0 14px 50px rgba(110, 20, 48, 0.35),
+    var(--shadow);
+}
+
+.adm-current__who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.adm-current__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.adm-current__drink {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: clamp(1.35rem, 6vw, 1.7rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  background: var(--gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.adm-current__status {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.adm-current__closed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.adm-voters {
+  gap: 10px;
+}
+
+.adm-voters__label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.adm-voters__count {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--gold-light);
+}
+
+.adm-voters__count .dim {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.adm-voters__grid {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 12px 6px;
+}
+
+.adm-voter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.adm-voter__name {
+  max-width: 100%;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.adm-voter.is-done .adm-voter__name {
+  color: var(--text);
+}
+
+.adm-voter.is-done .avatar {
+  animation: bb-pop 0.45s var(--ease-spring) both;
+}
+
+.adm-late-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(155, 39, 71, 0.18);
+  border: 1px solid rgba(232, 163, 168, 0.25);
+  color: #f3d3d6;
+}
+
+/* ---------------------------------------------------------------------
+   Specialpriser
+   --------------------------------------------------------------------- */
+
+.adm-awards__title,
+.adm-cer__title,
+.adm-me-join__title,
+.adm-dash__create-title {
+  margin: 4px 0 6px;
+  font-size: clamp(1.5rem, 6.5vw, 1.9rem);
+}
+
+.adm-awards__lead {
+  margin: 0;
+}
+
+.adm-award-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.adm-award-chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.adm-award-progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adm-award-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 4px 4px;
+  border-bottom: 1px solid rgba(217, 178, 111, 0.08);
+}
+
+.adm-award-row:last-child {
+  border-bottom: 0;
+}
+
+.adm-award-row__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.adm-award-row__dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.adm-award-row__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 244, 222, 0.14);
+  transition: background 0.3s;
+}
+
+.adm-award-row__dots span.is-on {
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(217, 178, 111, 0.6);
+}
+
+.adm-award-row__count {
+  width: 32px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.adm-award-row.is-done .adm-award-row__count {
+  color: var(--success);
+  font-size: 1.05rem;
+}
+
+/* ---------------------------------------------------------------------
+   Prisutdelning
+   --------------------------------------------------------------------- */
+
+.adm-cer__tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--champagne);
+  text-align: left;
+}
+
+.adm-cer__progress-label {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.adm-cer__progress-label strong {
+  color: var(--gold-light);
+}
+
+.adm-cer__progress-label .dim {
+  font-size: 0.75rem;
+}
+
+.adm-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.adm-step {
+  scroll-margin-top: 90px;
+  scroll-margin-bottom: 170px;
+}
+
+.adm-step__btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 178, 111, 0.1);
+  background: rgba(255, 244, 222, 0.025);
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    color 0.25s,
+    transform 0.25s var(--ease-out);
+}
+
+.adm-step__btn:disabled {
+  cursor: default;
+}
+
+.adm-step__marker {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.adm-step__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.98rem;
+}
+
+.pill.adm-step__live {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  padding: 3px 9px;
+}
+
+.adm-step--past .adm-step__btn {
+  opacity: 0.6;
+}
+
+.adm-step--past .adm-step__marker {
+  border-color: rgba(143, 211, 168, 0.4);
+  color: var(--success);
+  background: rgba(143, 211, 168, 0.08);
+}
+
+.adm-step--current .adm-step__btn {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: linear-gradient(90deg, rgba(217, 178, 111, 0.18), rgba(217, 178, 111, 0.04));
+  box-shadow: var(--shadow-gold);
+  opacity: 1;
+}
+
+.adm-step--current .adm-step__marker {
+  border-color: transparent;
+  background: var(--gold-grad);
+  color: #1a1208;
+}
+
+.adm-step--current .adm-step__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.08rem;
+}
+
+.adm-step--next .adm-step__btn:hover {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------------
+   Avslutat
+   --------------------------------------------------------------------- */
+
+.adm-fin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.adm-fin__script {
+  font-family: var(--font-script);
+  font-size: 3.2rem;
+  line-height: 1;
+  margin-top: -6px;
+  background: var(--gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding: 0 0.2em;
+}
+
+.adm-fin__title {
+  margin: 0;
+  font-size: clamp(1.35rem, 6vw, 1.7rem);
+}
+
+.adm-fin__lead {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.adm-fin__share {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------------
+   Inloggning
+   --------------------------------------------------------------------- */
+
+.page.adm-login {
+  gap: 22px;
+}
+
+.adm-login .adm-backlink {
+  align-self: flex-start;
+}
+
+.adm-login__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.adm-login__script {
+  font-size: 2.6rem;
+  line-height: 1;
+  background: var(--gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding: 0 0.2em;
+}
+
+.adm-login__title {
+  margin: 6px 0 8px;
+  font-size: clamp(1.5rem, 6.5vw, 1.9rem);
+}
+
+.adm-login__lead {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.adm-password {
+  position: relative;
+}
+
+.adm-password .input {
+  padding-right: 56px;
+}
+
+.adm-password__toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.adm-password__toggle:hover,
+.adm-password__toggle[aria-pressed='true'] {
+  color: var(--gold-light);
+}
+
+/* ---------------------------------------------------------------------
+   Dashboard
+   --------------------------------------------------------------------- */
+
+.page.adm-dash {
+  gap: 22px;
+}
+
+.adm-dash__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.adm-games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card.adm-game {
+  padding: 0;
+  overflow: hidden;
+  transition:
+    opacity 0.3s,
+    border-color 0.2s;
+}
+
+.adm-game--live {
+  border-color: var(--line-strong);
+}
+
+.adm-game--deleting {
+  opacity: 0.45;
+}
+
+.adm-game__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 16px 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.adm-game__main:hover {
+  color: inherit;
+}
+
+.adm-game__top {
+  align-items: flex-start;
+}
+
+.adm-game__name {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.adm-game__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.adm-game__pin {
+  color: var(--gold-light);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.adm-game__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
+.adm-game__actions .btn--sm {
+  min-height: 44px;
+}
+
+.adm-footlinks {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  margin-top: auto;
+  padding: 8px 0 4px;
+  font-family: var(--font-deco);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.adm-footlinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.adm-footlinks a:hover {
+  color: var(--gold-light);
+}
+
+.page.adm-missing {
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------------------
+   Toasts
+   --------------------------------------------------------------------- */
+
+.adm-toasts {
+  position: fixed;
+  left: 50%;
+  top: calc(64px + var(--safe-top));
+  z-index: 1100;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.adm-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: rgba(22, 18, 28, 0.96);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.35;
+  pointer-events: auto;
+  animation: adm-toast-in 0.35s var(--ease-spring) both;
+}
+
+.adm-toast--success {
+  border-color: rgba(143, 211, 168, 0.45);
+}
+
+.adm-toast--success .adm-toast__icon {
+  color: var(--success);
+  font-weight: 800;
+}
+
+.adm-toast--error {
+  border-color: rgba(239, 127, 134, 0.6);
+  background: rgba(46, 14, 22, 0.97);
+}
+
+.adm-toast__icon {
+  flex: 0 0 auto;
+  width: 20px;
+  text-align: center;
+}
+
+.adm-toast__close {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+@keyframes adm-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Bekräftelsedialog
+   --------------------------------------------------------------------- */
+
+.adm-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 12px calc(16px + var(--safe-bottom));
+  background: rgba(5, 4, 8, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: adm-fade 0.2s ease-out both;
+}
+
+.card.adm-dialog__card {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 20px 18px;
+  background: linear-gradient(180deg, #1d1724, #141019);
+  animation: adm-sheet-in 0.32s var(--ease-out) both;
+}
+
+.adm-dialog__title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.adm-dialog__body {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.adm-dialog__body strong {
+  color: var(--text);
+}
+
+.adm-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.adm-dialog__actions .btn {
+  padding-left: 10px;
+  padding-right: 10px;
+  letter-spacing: 0.1em;
+}
+
+@keyframes adm-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes adm-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (min-width: 600px) {
+  .adm-dialog {
+    align-items: center;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Mycket smala skärmar
+   --------------------------------------------------------------------- */
+
+@media (max-width: 360px) {
+  .adm-header__main {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .adm-join {
+    flex-direction: column;
+    text-align: center;
+  }
+  .adm-join__actions {
+    justify-content: center;
+  }
+  .adm-prow__main {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-cta--glow,
+  .adm-tab__badge,
+  .adm-prow--current .adm-prow__pos {
+    animation: none;
+  }
+}

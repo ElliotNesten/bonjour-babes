@@ -12,7 +12,8 @@
     "build:emu": "tsc --noEmit && vite build --mode emulator --outDir dist-emu",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts",
+    "test:rules": "env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy firebase emulators:exec --only database,auth --project demo-bonjour \"npx vitest run --config vitest.rules.config.ts\"",
     "emulators": "firebase emulators:start --only database,auth --project demo-bonjour"
   },
   "dependencies": {
