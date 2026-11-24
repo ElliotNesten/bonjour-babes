@@ -1,6 +1,6 @@
 export type Unsubscribe = () => void;
 
-export type BackendKind = 'firebase' | 'emulator' | 'local';
+export type BackendKind = 'server' | 'local';
 
 /**
  * Minimal databas-abstraktion som både Firebase Realtime Database och

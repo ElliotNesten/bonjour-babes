@@ -47,40 +47,36 @@ Varje domare sätter **1–10** i fyra kategorier:
 
 ---
 
-## Installation (gratis, ungefär 10 minuter)
+## Installation på Vercel (gratis, ungefär 10 minuter)
 
-Sidan körs på **GitHub Pages**. Data sparas i **Firebase Realtime Database**. Båda är gratis i den här skalan: Firebase gratisplan "Spark" klarar 100 samtidiga anslutningar och 1 GB lagring.
+Allt körs på **Vercel**: sidan, API:t (Vercel Functions i `api/`) och databasen (**Postgres från Neon**, som du skapar direkt under fliken *Storage* i Vercel – inget separat konto behövs). Gratisnivåerna räcker gott för en kväll med ett tiotal mobiler.
 
-### 1. Skapa ett Firebase-projekt
+### 1. Importera projektet
 
-1. Gå till [console.firebase.google.com](https://console.firebase.google.com) och välj **Skapa projekt**, till exempel med namnet `bonjour-babes`. Google Analytics behövs inte.
-2. Aktivera databasen:
-   1. Gå till **Build → Realtime Database → Skapa databas**.
-   2. Välj platsen **Belgien (europe-west1)**.
-   3. Starta i **låst läge**.
-3. Under fliken **Regler**: ersätt allt med innehållet i [`database.rules.json`](database.rules.json) och tryck på **Publicera**.
-4. Aktivera inloggning:
-   1. Gå till **Build → Authentication → Kom igång → Sign-in method**.
-   2. Aktivera **Anonymous**.
-5. Hämta konfigurationen:
-   1. Gå till **Projektinställningar** (kugghjulet) **→ Allmänt → Dina appar** och klicka på webbikonen `</>`.
-   2. Registrera en app. Firebase Hosting behövs inte.
-   3. Kopiera `firebaseConfig`.
-6. Klistra in konfigurationen i [`src/config.ts`](src/config.ts). Kontrollera att `databaseURL` finns med.
+1. Logga in på [vercel.com](https://vercel.com) (gratisplanen *Hobby* räcker) och välj **Add New… → Project**.
+2. Importera GitHub-repot `bonjour-babes`. Vercel känner igen Vite automatiskt – ändra inga bygginställningar.
+3. Tryck på **Deploy**. Sidan fungerar inte fullt ut förrän databasen är kopplad (steg 2).
 
-> Värdena i `firebaseConfig` är inte hemliga. Säkerheten sköts av databasreglerna: bara admin kan styra spelet, och man kan bara rösta på den drink som är aktuell medan röstningen är öppen.
+### 2. Skapa databasen
 
-### 2. Publicera på GitHub Pages
+1. Öppna projektet i Vercel och gå till **Storage → Create Database → Neon (Serverless Postgres)**.
+2. Välj regionen **Frankfurt (eu-central-1)** – samma region som API:t körs i (`vercel.json`) – och gratisplanen.
+3. **Connect** databasen till projektet (alla miljöer). Vercel lägger då in `DATABASE_URL` automatiskt.
+4. Gå till **Deployments**, välj den senaste deployen och **Redeploy**, så att den får med databasen. Tabellen skapas automatiskt första gången sidan används.
 
-1. Gå till **Settings → Pages** i GitHub-repot och välj **Source: GitHub Actions**.
-2. Pusha till standardgrenen. Flödet i `.github/workflows/deploy.yml` bygger, testar och publicerar sidan.
-3. Sidan hamnar på `https://<användarnamn>.github.io/bonjour-babes/`.
+> Säkerheten sköts av servern: alla läsningar och skrivningar kontrolleras mot reglerna i [`server/rules.ts`](server/rules.ts). Bara admin kan styra spelet, och man kan bara rösta på den drink som är aktuell medan röstningen är öppen.
 
 ### 3. Välj adminlösenord
 
-Öppna `https://…/bonjour-babes/#/admin` direkt efter publiceringen och välj ett lösenord (minst 8 tecken – välj något som gästerna inte kan gissa). Den som först väljer ett lösenord blir admin. Lösenordet sparas som en hash som ingen kan läsa.
+Öppna `https://<ditt-projekt>.vercel.app/#/admin` direkt efter publiceringen och välj ett lösenord (minst 8 tecken – välj något som gästerna inte kan gissa). Den som först väljer ett lösenord blir admin. Lösenordet sparas som en hash som ingen kan läsa, och felaktiga inloggningsförsök begränsas.
 
-*Glömt lösenordet?* Radera noderna `secret` och `setup` under fliken **Data** i Realtime Database och välj ett nytt.
+*Glömt lösenordet?* Gå till **Storage → din Neon-databas → Open in Neon → SQL Editor** och kör:
+
+```sql
+DELETE FROM bb_docs WHERE key IN ('secret', 'setup');
+```
+
+Välj sedan ett nytt lösenord på `/#/admin`.
 
 ---
 
@@ -88,15 +84,15 @@ Sidan körs på **GitHub Pages**. Data sparas i **Firebase Realtime Database**. 
 
 ```bash
 npm install
-npm run dev:local   # demoläge utan Firebase – allt sparas i webbläsaren (varje flik = egen användare)
-npm run dev         # mot riktiga Firebase (kräver src/config.ts)
-npm run dev:emu     # mot lokala Firebase-emulatorer (kör `npm run emulators` i en annan terminal)
-npm test            # enhetstester för poäng- och spellogik
-npm run test:rules  # tester av databasreglerna mot Firebase-emulatorn (kräver Java + firebase-tools)
+npm run dev         # appen + API:t lokalt; utan databas sparas allt i .data/dev-db.json
+npm run dev:local   # demoläge helt i webbläsaren (varje flik = egen användare)
+npm test            # enhetstester: poäng, spellogik, säkerhetsregler, API
 npm run build       # typkontroll + produktionsbygge till dist/
 ```
 
-I utvecklingsläge kan du skapa ett demospel med påhittade deltagare från webbläsarkonsolen:
+Vill du köra mot en riktig Postgres lokalt sätter du `DATABASE_URL` (t.ex. med `vercel env pull .env.local` eller en lokal Postgres) innan `npm run dev`. `npm run test:pg` kör databastesterna mot `TEST_DATABASE_URL`.
+
+I utvecklingsläge kan du skapa ett demospel med påhittade deltagare från webbläsarkonsolen (i fliken där du är inloggad som admin):
 
 ```js
 await __bb.seed({ status: 'ceremony', step: 3, players: 9 })
@@ -114,5 +110,7 @@ src/
     admin/      adminpanelen
     tv/         storskärmen och prisutdelningen (ljud via Web Audio, konfetti)
     results/    resultatsidan och Hall of Fame
-database.rules.json   säkerhetsregler för Firebase
+api/            Vercel Functions: session, läsning och skrivning
+server/         API-logik, säkerhetsregler (rules.ts) och lagring i Postgres
+vercel.json     region för API:t (Frankfurt)
 ```

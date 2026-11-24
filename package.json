@@ -17,14 +17,17 @@
     "emulators": "firebase emulators:start --only database,auth --project demo-bonjour"
   },
   "dependencies": {
+    "@vercel/functions": "^3.11.3",
     "canvas-confetti": "^1.9.4",
-    "firebase": "^13.4.0",
+    "pg": "^8.23.1",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
