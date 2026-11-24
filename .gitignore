@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-emu
+*.log
+.firebase
+firebase-debug.log*
+database-debug.log*
+test-results
+playwright-report
+.DS_Store
