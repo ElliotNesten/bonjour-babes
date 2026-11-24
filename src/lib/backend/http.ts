@@ -80,6 +80,10 @@ const SESSION_RETRY_DELAYS_MS = [500, 1500, 3500];
 const MAX_BACKOFF_MS = 5000;
 /** Antal tidsmätningar som sparas för att räkna ut skillnaden mot serverns klocka. */
 const TIME_SAMPLES = 12;
+/** Mätningar vars svarstid är högst så här mycket längre än den snabbaste räknas med i medelvärdet. */
+const RTT_TOLERANCE_MS = 30;
+/** Högst så många (av de snabbaste) mätningarna räknas med i medelvärdet. */
+const TIME_SAMPLES_USED = 5;
 
 interface Session {
   uid: string;
@@ -114,7 +118,11 @@ type ReadEntry = ReadRequest['reads'][number];
 
 const PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
 
-const RETRYABLE_SESSION_ERRORS = new Set<ApiFailure>(['network', 'bad_response', 'server_error', 'rate_limited']);
+/** Ska ett misslyckat försök att skapa en session göras om? (Inte vid t.ex. 404: då saknas API:t.) */
+function isRetryableSessionError(err: ApiError): boolean {
+  if (err.code === 'network' || err.code === 'server_error' || err.code === 'rate_limited') return true;
+  return err.code === 'bad_response' && (err.status === 0 || err.status >= 500);
+}
 
 /* ------------------------------------------------------------------ */
 /*  Hjälpfunktioner                                                     */
@@ -232,7 +240,11 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
   const timeSamples: { offset: number; rtt: number }[] = [];
   let serverOffset = 0;
 
-  /** Skillnaden mot serverns klocka, mätt mot mitten av förfrågan. De snabbaste svaren väger tyngst. */
+  /**
+   * Skillnaden mot serverns klocka, mätt mot mitten av förfrågan. Felet i en mätning är högst halva
+   * svarstiden, så de snabbaste svaren gäller: medelvärdet tas bara av mätningarna vars svarstid ligger
+   * nära den snabbaste (det jämnar ut skakningar utan att långsamma svar drar iväg tiden).
+   */
   const recordServerTime = (now: unknown, t0: number, t1: number) => {
     if (typeof now !== 'number' || !Number.isFinite(now)) return;
     const rtt = Math.max(0, t1 - t0);
@@ -241,7 +253,11 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     if (timeSamples.length && Math.abs(offset - serverOffset) > rtt / 2 + 2000) timeSamples.length = 0;
     timeSamples.push({ offset, rtt });
     if (timeSamples.length > TIME_SAMPLES) timeSamples.shift();
-    const best = [...timeSamples].sort((a, b) => a.rtt - b.rtt).slice(0, 3);
+    const minRtt = Math.min(...timeSamples.map((s) => s.rtt));
+    const best = timeSamples
+      .filter((s) => s.rtt <= minRtt + RTT_TOLERANCE_MS)
+      .sort((a, b) => a.rtt - b.rtt)
+      .slice(0, TIME_SAMPLES_USED);
     serverOffset = best.reduce((sum, s) => sum + s.offset, 0) / best.length;
   };
 
@@ -268,9 +284,16 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
 
   /**
    * Ett anrop till API:t. Kastar ApiError (eller PermissionDeniedError vid 403) med ett svenskt meddelande.
-   * Nätverksfel, 5xx och svar som inte är vårt API räknas som "ingen anslutning".
+   * Nätverksfel, 5xx och svar som inte är vårt API (t.ex. en HTML-felsida, eller ett svar som inte
+   * klarar `valid`) räknas som "ingen anslutning"; ett 4xx-svar från API:t betyder att vi är anslutna.
    */
-  async function call<T>(endpoint: 'session' | 'read' | 'write', body: unknown, token: string | null, timeoutMs: number): Promise<T> {
+  async function call<T>(
+    endpoint: 'session' | 'read' | 'write',
+    body: unknown,
+    token: string | null,
+    timeoutMs: number,
+    valid: (data: Record<string, unknown>) => boolean = () => true,
+  ): Promise<T> {
     const headers: Record<string, string> = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -319,15 +342,20 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     const obj = isObject(data) ? data : null;
     if (obj) recordServerTime(obj.now, t0, t1);
 
-    if (obj && status >= 200 && status < 300) {
-      setConnected(true);
-      return obj as T;
+    if (status >= 200 && status < 300) {
+      if (obj && valid(obj)) {
+        setConnected(true);
+        return obj as T;
+      }
+      setConnected(false);
+      throw new ApiError(MSG.badResponse, 'bad_response', status);
     }
 
     let code: ApiFailure;
     if (obj) code = typeof obj.error === 'string' ? (obj.error as ApiFailure) : codeFromStatus(status);
     else code = status === 429 ? 'rate_limited' : 'bad_response'; // t.ex. en HTML-felsida från Vercel
-    setConnected(!!obj && status < 500);
+    // 429 kan komma från Vercels egen spärr (utan JSON) – servern svarade ändå.
+    setConnected(status === 429 || (!!obj && status < 500));
 
     if (code === 'permission_denied') throw new PermissionDeniedError('permission_denied');
     const serverMessage = obj && typeof obj.message === 'string' && obj.message.trim() ? obj.message : null;
@@ -355,31 +383,45 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     return null;
   };
 
+  const isValidSession = (r: Record<string, unknown>) =>
+    typeof r.uid === 'string' && r.uid.length > 0 && typeof r.token === 'string' && r.token.length > 0;
+
   async function createSession(): Promise<Session> {
     for (let attempt = 0; ; attempt++) {
       // En annan flik kan ha hunnit skapa en session (alla flikar delar samma).
       const stored = loadStoredSession();
       if (stored) return stored;
       try {
-        const res = await call<SessionResponse>('session', undefined, null, SESSION_TIMEOUT_MS);
-        if (typeof res.uid !== 'string' || !res.uid || typeof res.token !== 'string' || !res.token) {
-          throw new ApiError(MSG.badResponse, 'bad_response', 200);
-        }
+        const res = await call<SessionResponse>('session', undefined, null, SESSION_TIMEOUT_MS, isValidSession);
         const raced = loadStoredSession();
         if (raced) return raced;
         const fresh: Session = { uid: res.uid, token: res.token };
         safeSet(storage, SESSION_STORAGE_KEY, JSON.stringify(fresh));
         return fresh;
       } catch (err) {
-        if (!(err instanceof ApiError) || !RETRYABLE_SESSION_ERRORS.has(err.code)) throw err;
+        if (!(err instanceof ApiError) || !isRetryableSessionError(err)) throw err;
         if (attempt >= SESSION_RETRY_DELAYS_MS.length) {
-          if (err.code === 'network' || err.code === 'bad_response') throw new ApiError(MSG.connectFailed, err.code, err.status);
+          if (err.code === 'network' || err.code === 'bad_response') {
+            throw new ApiError(err.status ? `${MSG.connectFailed} (HTTP ${err.status})` : MSG.connectFailed, err.code, err.status);
+          }
           throw err;
         }
         await new Promise((r) => setTimeout(r, SESSION_RETRY_DELAYS_MS[attempt]));
       }
     }
   }
+
+  /**
+   * Servern känner inte igen vår token (401). Byt INTE identitet mitt i spelet (spelaren skulle tappa sin
+   * plats). Läs i stället vidare som oinloggad, och glöm den sparade sessionen så att nästa sidladdning
+   * får en ny som fungerar. Skrivningar ger under tiden ett fel som ber användaren ladda om sidan.
+   */
+  let tokenRejected = false;
+  const rejectToken = (token: string) => {
+    if (session?.token !== token) return;
+    tokenRejected = true;
+    if (loadStoredSession()?.token === token) safeRemove(storage, SESSION_STORAGE_KEY);
+  };
 
   function getSession(): Promise<Session> {
     if (session) return Promise.resolve(session);
@@ -408,6 +450,8 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
   let polling = false;
   /** En ny pollning begärdes medan en pågick – kör en till direkt efteråt. */
   let pollAgain = false;
+  /** En pollning är redan beställd till nästa mikrouppgift (se pollSoon). */
+  let pollQueued = false;
   /** Skrivningar som väntar på nästa pollning som STARTAR efter att de lades till. */
   let waiters: (() => void)[] = [];
   let failures = 0;
@@ -446,13 +490,37 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     }, delay);
   }
 
-  async function read(reads: ReadEntry[]): Promise<ReadResponse> {
-    const res = await call<ReadResponse>('read', { reads }, session?.token ?? null, READ_TIMEOUT_MS);
-    if (!Array.isArray(res.results) || res.results.length !== reads.length) {
-      setConnected(false);
-      throw new ApiError(MSG.badResponse, 'bad_response', 200);
+  /**
+   * Pollar direkt (i nästa mikrouppgift, utan att vänta på en timer) – eller, om en pollning pågår,
+   * direkt efter den. Används när någon väntar på svaret: skrivningar (refresh) och get().
+   */
+  function pollSoon() {
+    if (polling) {
+      pollAgain = true;
+      return;
     }
-    return res;
+    if (pollQueued) return;
+    pollQueued = true;
+    queueMicrotask(() => {
+      pollQueued = false;
+      void poll();
+    });
+  }
+
+  async function read(reads: ReadEntry[]): Promise<ReadResponse> {
+    const token = session && !tokenRejected ? session.token : null;
+    try {
+      return await call<ReadResponse>(
+        'read',
+        { reads },
+        token,
+        READ_TIMEOUT_MS,
+        (r) => Array.isArray(r.results) && r.results.length === reads.length,
+      );
+    } catch (err) {
+      if (token && err instanceof ApiError && err.code === 'unauthenticated') rejectToken(token);
+      throw err;
+    }
   }
 
   const deliver = (sub: Subscriber, value: unknown) => {
@@ -464,7 +532,7 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     }
   };
 
-  /** Servern nekade (eller förstod inte) sökvägen: avsluta bevakningen, som när Firebase avbryter en lyssnare. */
+  /** Servern nekade (eller förstod inte) sökvägen: avsluta bevakningen och meddela prenumeranterna via onError. */
   const failWatch = (w: Watch, err: Error) => {
     watches.delete(w.path);
     const subs = [...w.subs];
@@ -534,6 +602,8 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
       ...gets.map((g) => ({ path: g.path })),
     ];
     try {
+      // Håller sessionen på att skapas? Vänta in den, så att läsningen görs som rätt användare.
+      if (!session && sessionPromise) await sessionPromise.catch(() => undefined);
       const res = await read(reads);
       failures = 0;
       list.forEach((w, i) => applyWatchResult(w, res.results[i]));
@@ -544,7 +614,8 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     } finally {
       polling = false;
       done.forEach((resolve) => resolve());
-      if (pollAgain || waiters.length || getQueue.length) schedule(0);
+      // Begärdes en ny pollning under tiden (ny prenumeration, skrivning, fokus …)? Kör den direkt.
+      if (pollAgain || waiters.length || getQueue.length) pollSoon();
       else schedule(nextDelay());
     }
   }
@@ -570,12 +641,15 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     }
   };
 
-  /** Hämtar alla prenumerationer direkt (efter en skrivning). Löses när den pollningen är klar. */
+  /**
+   * Hämtar alla prenumerationer direkt (efter en skrivning). Löses när en pollning som STARTADE efter
+   * anropet är klar – en pollning som redan pågår kan ha läst databasen före skrivningen.
+   */
   const refresh = (): Promise<void> => {
     if (!watches.size) return Promise.resolve();
     return new Promise<void>((resolve) => {
       waiters.push(resolve);
-      schedule(0);
+      pollSoon();
     });
   };
 
@@ -603,13 +677,10 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     try {
       await call<WriteResponse>('write', req, s.token, WRITE_TIMEOUT_MS);
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'unauthenticated') {
-        // Servern godkänner inte längre token. Byt INTE identitet mitt i spelet (spelaren skulle tappa sin
-        // plats), men glöm den sparade sessionen så att en omladdning av sidan ger en ny som fungerar.
-        if (loadStoredSession()?.token === s.token) safeRemove(storage, SESSION_STORAGE_KEY);
-      }
+      if (err instanceof ApiError && err.code === 'unauthenticated') rejectToken(s.token);
       throw err;
     }
+    // Vyerna ska se sin egen skrivning när löftet löses (t.ex. adminknappens nya etikett).
     await refresh();
   }
 
@@ -629,7 +700,7 @@ export function createHttpBackend(opts: HttpBackendOptions = {}): Backend {
     return out;
   };
 
-  /** Som Firebase push-id: 8 tecken tid + 12 slumptecken, ökar strikt inom samma millisekund. */
+  /** Push-id: 8 tecken servertid + 12 slumptecken. Sorteras i tidsordning och ökar strikt inom samma millisekund. */
   const pushKey = (): string => {
     let time = Math.max(Math.floor(now()), lastPushTime); // backar aldrig, även om klockan justeras
     if (time === lastPushTime && lastRandChars.length === 12) {
