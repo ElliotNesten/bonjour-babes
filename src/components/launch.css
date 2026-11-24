@@ -6,15 +6,18 @@
   position: fixed;
   inset: 0;
   z-index: 2000;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Nödutgång: blir innehållet ändå för högt skrollar man hellre än att något klipps bort. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background:
     radial-gradient(120% 70% at 50% 108%, rgba(110, 20, 48, 0.55), transparent 62%),
     radial-gradient(90% 60% at 50% -10%, rgba(217, 178, 111, 0.12), transparent 60%),
     var(--ink);
   color: var(--text);
-  padding: calc(28px + var(--safe-top)) 18px calc(28px + var(--safe-bottom));
+  padding: calc(4vmin + var(--safe-top)) 5vmin calc(4vmin + var(--safe-bottom));
 }
 
 .launch--reveal {
@@ -150,40 +153,52 @@
   }
 }
 
-/* Innehåll */
+/* Innehåll
+   ---------------------------------------------------------------------
+   Allt mäts i em utifrån en enda enhet (--u = font-size på .launch__inner) som räknas fram ur
+   BÅDE bredden och den synliga höjden (svh = höjden när mobilens adressfält syns). Hela
+   kompositionen (≈ 30 em hög, ≈ 18,5 em bred) skalar därför som en enhet och får plats med luft
+   runt sig på allt från en liten mobil till en TV. */
 .launch__inner {
   position: relative;
   z-index: 1;
+  margin: auto; /* centrerar – men klipper aldrig toppen om innehållet skulle bli för högt */
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: clamp(10px, 2.2vh, 22px);
-  max-width: 760px;
-  width: 100%;
+  gap: 0.8em;
+  font-size: clamp(9px, min(4.4vw, 2.7vh), 40px);
+  font-size: clamp(9px, min(4.4vw, 2.7svh), 40px);
   animation: bb-fade-up 1.2s var(--ease-out) both;
 }
 
-.launch__kicker {
+.launch__inner > * {
   margin: 0;
+}
+
+.launch__kicker {
   font-family: var(--font-deco);
-  font-size: clamp(0.7rem, 1.6vh, 0.95rem);
-  letter-spacing: 0.42em;
+  font-size: 0.72em;
+  line-height: 1.3;
+  letter-spacing: 0.38em;
+  padding-left: 0.38em; /* balanserar letter-spacing så att texten hamnar mitt i */
   text-transform: uppercase;
   color: var(--gold);
-  padding-left: 0.42em; /* balanserar letter-spacing så att texten hamnar mitt i */
 }
 
-.launch__logo.logo--xl .logo__bonjour {
-  font-size: clamp(4.2rem, 17vw, 8.5rem);
+.launch__logo.logo .logo__bonjour {
+  font-size: 4.6em;
 }
 
-.launch__logo.logo--xl .logo__babes {
-  font-size: clamp(1.15rem, 4.6vw, 2.2rem);
+.launch__logo.logo .logo__babes {
+  font-size: 1.15em;
 }
 
-.launch__ornament {
-  width: 100%;
+.launch__ornament.ornament {
+  width: 11em;
+  max-width: none;
+  margin: 0;
   color: var(--gold);
 }
 
@@ -192,20 +207,20 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: clamp(10px, 4vw, 34px);
-  margin: clamp(2px, 1vh, 10px) 0;
-  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 18px rgba(217, 178, 111, 0.12));
+  gap: 1.4em;
+  filter: drop-shadow(0 0.6em 1.1em rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0.9em rgba(217, 178, 111, 0.12));
 }
 
 .launch__glass {
-  height: clamp(92px, 17vh, 170px);
+  display: block;
+  height: 5.4em;
   width: auto;
   transform-origin: 50% 92%;
   animation: launch-sway 6s ease-in-out infinite;
 }
 
 .launch__glass--coupe {
-  height: clamp(110px, 21vh, 205px);
+  height: 6.4em;
   animation-delay: -2s;
 }
 
@@ -255,10 +270,10 @@
 
 /* Text och nedräkning */
 .launch__lead {
-  margin: 0;
   font-family: var(--font-display);
   font-style: italic;
-  font-size: clamp(1.15rem, 3.2vh, 1.8rem);
+  font-size: 1.25em;
+  line-height: 1.3;
   color: var(--champagne);
 }
 
@@ -266,7 +281,6 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  gap: 0;
 }
 
 .launch__unit-wrap {
@@ -278,13 +292,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: clamp(58px, 17vw, 112px);
+  min-width: 4em;
 }
 
 .launch__num {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(2.3rem, 10vw, 4.6rem);
+  font-size: 2.9em;
   line-height: 1;
   font-variant-numeric: lining-nums tabular-nums;
   background: var(--gold-text);
@@ -294,37 +308,45 @@
 }
 
 .launch__label {
-  margin-top: 6px;
+  margin-top: 0.55em;
   font-family: var(--font-deco);
-  font-size: clamp(0.58rem, 1.4vh, 0.78rem);
-  letter-spacing: 0.28em;
+  font-size: 0.58em;
+  letter-spacing: 0.18em;
+  padding-left: 0.18em;
   text-transform: uppercase;
   color: var(--text-muted);
-  padding-left: 0.28em;
 }
 
 .launch__sep {
-  align-self: flex-start;
-  margin-top: clamp(0.8rem, 3.4vw, 1.6rem);
-  font-size: clamp(0.5rem, 1.6vw, 0.75rem);
+  margin: 1.15em 0.6em 0;
+  font-size: 0.55em;
   color: var(--gold-deep);
 }
 
 .launch__date {
-  margin: 0;
   font-family: var(--font-deco);
-  font-size: clamp(0.66rem, 1.5vh, 0.85rem);
+  font-size: 0.64em;
+  line-height: 1.6;
   letter-spacing: 0.2em;
+  padding-left: 0.2em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
+.launch__date span {
+  display: block;
+}
+
+.launch__date .launch__date-dot {
+  display: none;
+}
+
 .launch__open {
-  margin: 0;
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 700;
-  font-size: clamp(2.2rem, 8vw, 4rem);
+  font-size: 2.6em;
+  line-height: 1.2;
   background: var(--gold-text);
   -webkit-background-clip: text;
   background-clip: text;
@@ -333,79 +355,24 @@
 }
 
 .launch__script {
-  margin: clamp(2px, 1vh, 10px) 0 0;
   font-family: var(--font-script);
-  font-size: clamp(1.7rem, 4.6vh, 2.6rem);
+  font-size: 1.6em;
+  line-height: 1.2;
   color: var(--gold-light);
   opacity: 0.9;
 }
 
-/* Smala skärmar: datumet på två rader i stället för en avbruten rad */
-@media (max-width: 600px) {
-  .launch__date span {
-    display: block;
-  }
-  .launch__date .launch__date-dot {
-    display: none;
-  }
-}
-
-/* Storskärm/TV: större text och drinkar så att det syns över rummet */
-@media (min-width: 1200px) and (min-height: 760px) {
+/* Låga, breda skärmar (t.ex. mobil på tvären): ta bort drinkarna, avdelaren och datumet så att
+   resten (≈ 18 em) kan bli större och ändå få plats. */
+@media (max-height: 520px) and (min-aspect-ratio: 1/1) {
   .launch__inner {
-    max-width: 1100px;
+    gap: 0.6em;
+    font-size: clamp(9px, min(4.4vw, 4.4vh), 40px);
+    font-size: clamp(9px, min(4.4vw, 4.4svh), 40px);
   }
-  .launch__kicker {
-    font-size: 1.25rem;
-  }
-  .launch__logo.logo--xl .logo__bonjour {
-    font-size: 11rem;
-  }
-  .launch__logo.logo--xl .logo__babes {
-    font-size: 2.8rem;
-  }
-  .launch__glass {
-    height: 210px;
-  }
-  .launch__glass--coupe {
-    height: 250px;
-  }
-  .launch__lead {
-    font-size: 2.6rem;
-  }
-  .launch__num {
-    font-size: 6.4rem;
-  }
-  .launch__unit {
-    min-width: 150px;
-  }
-  .launch__label {
-    font-size: 0.95rem;
-  }
-  .launch__sep {
-    margin-top: 2.2rem;
-    font-size: 0.95rem;
-  }
+  .launch__drinks,
+  .launch__ornament,
   .launch__date {
-    font-size: 1.05rem;
-  }
-  .launch__script {
-    font-size: 3.4rem;
-  }
-}
-
-/* Låga skärmar (t.ex. liggande mobil): krymp drinkarna och luften */
-@media (max-height: 560px) {
-  .launch__glass {
-    height: 70px;
-  }
-  .launch__glass--coupe {
-    height: 84px;
-  }
-  .launch__inner {
-    gap: 6px;
-  }
-  .launch__logo.logo--xl .logo__bonjour {
-    font-size: 3.4rem;
+    display: none;
   }
 }
